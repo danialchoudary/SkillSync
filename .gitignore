@@ -1,0 +1,42 @@
+# Node backend
+Backend/node_modules/
+Backend/.env
+Backend/uploads/
+Backend/coverage/
+Backend/*.log
+
+# React frontend
+Frontend/node_modules/
+Frontend/dist/
+Frontend/build/
+Frontend/.env
+Frontend/public/uploads/
+Frontend/coverage/
+Frontend/*.log
+
+# Root
+node_modules/
+.env
+*.log
+*.db
+*.sqlite
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/
+
+# Test coverage
+coverage/
+
+# Misc
+*.pid
+*.seed
+*.tgz
+
+# Ignore Copilot system files except documentation
+!.github/copilot-instructions.md
+.github/
+
