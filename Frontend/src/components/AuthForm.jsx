@@ -1,30 +1,34 @@
 import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { AnimatePresence, motion } from 'framer-motion';
+import RoleToggle from './AuthForm/RoleToggle';
+import JobSeekerFields from './AuthForm/JobSeekerFields';
+import RecruiterFields from './AuthForm/RecruiterFields';
+import EmailField from './AuthForm/EmailField';
+import PasswordField from './AuthForm/PasswordField';
+import ConfirmPasswordField from './AuthForm/ConfirmPasswordField';
+import ErrorMessage from './AuthForm/ErrorMessage';
+import SubmitButton from './AuthForm/SubmitButton';
+import ForgotPasswordLink from './AuthForm/ForgotPasswordLink';
 
-export default function AuthForm({ type = 'login', onSubmit, loading, error }) {
+export default function AuthForm({ type = 'login', onSubmit, loading, error, onErrorClose }) {
   const [role, setRole] = useState('jobseeker');
   const [form, setForm] = useState({
-    // Jobseeker fields
     name: '',
     skills: '',
     experience: '',
     resumeLink: '',
-    // Recruiter fields
     recruiterName: '',
     companyName: '',
     companyAddress: '',
     companyWebsite: '',
     confirmPassword: '',
-    // Common
     email: '',
     password: '',
   });
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailValid, setEmailValid] = useState(null); // null: untouched, true: valid, false: invalid
+  const [emailValid, setEmailValid] = useState(null);
 
-  // Simple email regex
   const emailRegex = /^[^\s@]+@[^\s@]+$/;
 
   const handleEmailChange = e => {
@@ -46,7 +50,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error }) {
     setPasswordError('');
     let data;
     if (type === 'register') {
-      // Password match validation for both roles
       if (form.password !== form.confirmPassword) {
         setPasswordError('Passwords do not match');
         return;
@@ -74,7 +77,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error }) {
         };
       }
     } else {
-      // Only send email and password for login
       data = {
         email: form.email,
         password: form.password,
@@ -84,125 +86,58 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error }) {
   };
 
   return (
-    <form className="max-w-md mx-auto bg-white p-6 rounded shadow" onSubmit={handleSubmit}>
-      {type === 'register' && (
-        <>
-          <div className="flex justify-center mb-4">
-            <button
-              type="button"
-              className={`px-4 py-2 rounded-l ${role === 'jobseeker' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-              onClick={() => setRole('jobseeker')}
+    <div className="flex items-center justify-center w-full h-full">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 w-full max-w-lg">
+        <form onSubmit={handleSubmit} className="space-y-3.5 w-full">
+        {/* Role Toggle for Register */}
+        {type === 'register' && (
+          <RoleToggle role={role} setRole={setRole} />
+        )}
+
+        {/* Dynamic Fields for Register */}
+        <AnimatePresence mode="wait">
+          {type === 'register' && (
+            <motion.div
+              key={role}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4"
             >
-              Register as Job Seeker
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 rounded-r ${role === 'recruiter' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-              onClick={() => setRole('recruiter')}
-            >
-              Register as Recruiter
-            </button>
-          </div>
-          {role === 'jobseeker' ? (
-            <>
-              <input name="name" type="text" placeholder="Name" value={form.name} onChange={handleChange} className="input" required />
-              <input name="skills" type="text" placeholder="Skills (comma separated)" value={form.skills} onChange={handleChange} className="input" />
-              <input name="experience" type="text" placeholder="Experience" value={form.experience} onChange={handleChange} className="input" />
-              <input name="resumeLink" type="url" placeholder="Resume Link" value={form.resumeLink} onChange={handleChange} className="input" />
-            </>
-          ) : (
-            <>
-              <input name="recruiterName" type="text" placeholder="Recruiter Name" value={form.recruiterName} onChange={handleChange} className="input" required />
-              <input name="companyName" type="text" placeholder="Company Name" value={form.companyName} onChange={handleChange} className="input" required />
-              <input name="companyAddress" type="text" placeholder="Company Address" value={form.companyAddress} onChange={handleChange} className="input" required />
-              <input name="companyWebsite" type="url" placeholder="Company Website (optional)" value={form.companyWebsite} onChange={handleChange} className="input" />
-            </>
+              {role === 'jobseeker' ? (
+                <JobSeekerFields form={form} handleChange={handleChange} />
+              ) : (
+                <RecruiterFields form={form} handleChange={handleChange} />
+              )}
+            </motion.div>
           )}
-        </>
-      )}
-      <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} className="input" required autoComplete="username" />
-      {emailValid === true && (
-        <div className="text-green-600 text-sm mt-1">Valid email</div>
-      )}
-      {emailValid === false && (
-        <div className="text-red-500 text-sm mt-1">Invalid email format</div>
-      )}
-      <div className="relative">
-        <input
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className="input pr-10"
-          required
-          autoComplete="current-password"
-        />
-        <span
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
-          onClick={() => setShowPassword(prev => !prev)}
-          tabIndex={0}
-          role="button"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-        >
-          <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-        </span>
-      </div>
-      {type === 'register' && role === 'jobseeker' && (
-        <div className="relative">
-          <input
-            name="confirmPassword"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Confirm Password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            className="input pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <span
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
-            onClick={() => setShowPassword(prev => !prev)}
-            tabIndex={0}
-            role="button"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-          </span>
-        </div>
-      )}
-  {/* // ...existing code... */}
-      {type === 'register' && role === 'recruiter' && (
-        <div className="relative">
-          <input
-            name="confirmPassword"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Confirm Password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            className="input pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <span
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
-            onClick={() => setShowPassword(prev => !prev)}
-            tabIndex={0}
-            role="button"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-          </span>
-        </div>
-      )}
-      {passwordError && (
-        <div className="text-red-500 mt-2">{passwordError}</div>
-      )}
-      <button type="submit" className="btn w-full mt-4" disabled={loading}>
-        {loading ? 'Loading...' : type === 'login' ? 'Login' : 'Register'}
-      </button>
-      {error && <div className="text-red-500 mt-2">{error}</div>}
-    </form>
-  );
+        </AnimatePresence>
+
+        {/* Email Field */}
+        <EmailField value={form.email} onChange={handleChange} emailValid={emailValid} />
+
+        {/* Password Field */}
+        <PasswordField value={form.password} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
+
+        {/* Confirm Password Field */}
+        {type === 'register' && (
+          <ConfirmPasswordField value={form.confirmPassword} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
+        )}
+
+  {/* Password Error */}
+  <ErrorMessage error={passwordError} />
+
+  {/* General Error (only for login) */}
+  {type === 'login' && <ErrorMessage error={error} onClose={onErrorClose} />}
+
+        {/* Submit Button */}
+        <SubmitButton loading={loading} type={type} />
+
+        {/* Forgot Password Link (Login only) */}
+        {type === 'login' && <ForgotPasswordLink />}
+      </form>
+    </div>
+  </div>
+);
 }
-  // No changes needed if AuthForm already supports both login and register via the 'type' prop and is styled with TailwindCSS.

@@ -1,4 +1,22 @@
-import api from './api';
+export const updateJob = async (jobId, updatedData) => {
+  try {
+    const res = await api.put(`/jobs/${jobId}`, updatedData, { withCredentials: true });
+    return res.data;
+  } catch (err) {
+    console.error('Update job error:', err);
+    throw err;
+  }
+};
+export const deleteJob = async (jobId) => {
+  try {
+    const res = await api.delete(`/jobs/${jobId}`, { withCredentials: true });
+    return res.data;
+  } catch (err) {
+    console.error('Delete job error:', err);
+    throw err;
+  }
+};
+import api from '../../../services/api';
 
 export const saveJob = async (id) => {
   try {
@@ -63,26 +81,6 @@ export const getMyJobs = async () => {
     return res.data;
   } catch (err) {
     console.error('Get my jobs error:', err);
-    throw err;
-  }
-};
-
-export const deleteJob = async (id) => {
-  try {
-    const res = await api.delete(`/jobs/${id}`, { withCredentials: true });
-    return res.data;
-  } catch (err) {
-    console.error('Delete job error:', err);
-    throw err;
-  }
-};
-
-export const updateJob = async (id, job) => {
-  try {
-    const res = await api.patch(`/jobs/${id}`, job, { withCredentials: true });
-    return res.data;
-  } catch (err) {
-    console.error('Update job error:', err);
     throw err;
   }
 };

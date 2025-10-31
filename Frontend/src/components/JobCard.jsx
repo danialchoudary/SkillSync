@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ApplyModal from './ApplyModal';
+import ApplyModal from '../features/jobs/components/ApplyModal';
 import { applyForJob } from '../services/jobApi';
 import Toast from './Toast';
 import { FaBuilding, FaUser, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark } from 'react-icons/fa';

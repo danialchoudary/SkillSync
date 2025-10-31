@@ -45,9 +45,12 @@ export default function Applicants() {
 	};
 
 		return (
-			<div className="min-h-screen bg-gray-50 flex flex-col">
-				<div className="flex flex-1">
-				<main className="flex-1 p-6">
+				<div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+					{/* If you have a Topbar, add it here */}
+					<div className="flex flex-1 h-0">
+						{/* If you have a Sidebar, add it here */}
+						<div className="flex flex-col flex-1 min-h-0">
+							<main className="flex-1 p-6 overflow-y-auto min-h-0">
 					<h2 className="text-2xl font-bold mb-4">Applicants</h2>
 								{loading ? (
 									<div className="flex items-center justify-center min-h-[200px]">
@@ -115,9 +118,10 @@ export default function Applicants() {
 							</div>
 						))
 					)}
-				</main>
-			</div>
-			<Footer />
-		</div>
-	);
+							</main>
+							<Footer />
+						</div>
+					</div>
+				</div>
+			);
 }

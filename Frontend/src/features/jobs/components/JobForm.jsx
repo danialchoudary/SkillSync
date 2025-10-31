@@ -1,4 +1,5 @@
-import JobForm from '../features/jobs/components/JobForm';
+import React, { useState } from 'react';
+import Toast from '../../../components/Toast';
 
 export default function JobForm({ onPost }) {
   const [form, setForm] = useState({
@@ -10,6 +11,8 @@ export default function JobForm({ onPost }) {
     skills: '',
     experience: '',
   });
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
 
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -17,12 +20,27 @@ export default function JobForm({ onPost }) {
 
   const handleSubmit = e => {
     e.preventDefault();
-    if (onPost) onPost(form);
-    setForm({ title: '', company: '', description: '', location: '', salary: '', skills: '', experience: '' });
+    if (onPost) {
+      Promise.resolve(onPost(form))
+        .then(() => {
+          setToast('Job posted successfully!');
+          setToastType('success');
+          setForm({ title: '', company: '', description: '', location: '', salary: '', skills: '', experience: '' });
+          setTimeout(() => setToast(null), 3000);
+        })
+        .catch(() => {
+          setToast('Failed to post job. Please try again.');
+          setToastType('error');
+          setTimeout(() => setToast(null), 3000);
+        });
+    }
   };
 
   return (
-    <form className="bg-white rounded shadow p-6 flex flex-col gap-4" onSubmit={handleSubmit}>
+    <>
+      {console.log('Toast state:', toast, toastType)}
+      {toast && <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999 }}><Toast type={toastType} message={toast} onClose={() => setToast(null)} /></div>}
+      <form className="bg-white rounded shadow p-6 flex flex-col gap-4" onSubmit={handleSubmit}>
       <h2 className="text-xl font-bold mb-2">Post a New Job</h2>
       <input name="title" value={form.title} onChange={handleChange} placeholder="Job Title" className="border px-3 py-2 rounded" required />
       <input name="company" value={form.company} onChange={handleChange} placeholder="Company Name" className="border px-3 py-2 rounded" required />
@@ -35,7 +53,8 @@ export default function JobForm({ onPost }) {
         <input name="skills" value={form.skills} onChange={handleChange} placeholder="Skills (comma separated)" className="border px-3 py-2 rounded w-1/2" />
         <input name="experience" value={form.experience} onChange={handleChange} placeholder="Experience (years)" className="border px-3 py-2 rounded w-1/2" type="number" min="0" />
       </div>
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 self-end">Post Job</button>
-    </form>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 self-end">Post Job</button>
+      </form>
+    </>
   );
 }

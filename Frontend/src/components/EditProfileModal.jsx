@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Toast from './Toast';
 import { updateMe, uploadResume } from '../services/api';
 import api from '../services/api';
+import ProfilePictureSection from './EditProfileModal/ProfilePictureSection';
+import SkillsSection from './EditProfileModal/SkillsSection';
+import ExperienceSection from './EditProfileModal/ExperienceSection';
+import ResumeSection from './EditProfileModal/ResumeSection';
 
 const validate = ({ name, skills, experience }) => {
   const errors = {};
@@ -20,7 +25,6 @@ const validate = ({ name, skills, experience }) => {
   return errors;
 };
 
-
 export default function EditProfileModal({ open, onClose, user, onSaved }) {
   if (!open || !user) return null;
 
@@ -34,7 +38,6 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
     },
   });
 
-  // Reset form when modal opens or user changes
   useEffect(() => {
     if (open && user) {
       setForm({
@@ -48,6 +51,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
       });
     }
   }, [open, user]);
+
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' });
@@ -57,8 +61,8 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
   const [profilePicUploading, setProfilePicUploading] = useState(false);
   const [profilePicError, setProfilePicError] = useState('');
 
-  const handleSkillAdd = () => {
-    const skill = form.skillInput.trim();
+  // Modularized handlers for child components
+  const handleSkillAdd = (skill) => {
     if (skill && !form.skills.includes(skill) && form.skills.length < 25 && skill.length <= 30) {
       setForm(f => ({ ...f, skills: [...f.skills, skill], skillInput: '' }));
     }
@@ -88,9 +92,9 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
     const errs = validate(payload);
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    setPrevForm(form); // Save previous form for revert
+    setPrevForm(form);
     setSaving(true);
-    setForm(payload); // Optimistically update UI
+    setForm(payload);
     try {
       await updateMe(payload);
       setToast({ message: 'Profile updated!', type: 'success' });
@@ -98,7 +102,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
       setTimeout(() => setToast({ message: '', type: 'success' }), 2500);
       onClose();
     } catch (err) {
-      setForm(prevForm); // Revert on error
+      setForm(prevForm);
       setToast({ message: err.response?.data?.error || 'Update failed.', type: 'error' });
       setTimeout(() => setToast({ message: '', type: 'error' }), 2500);
       setErrors({ api: err.response?.data?.error || 'Update failed.' });
@@ -130,9 +134,13 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      await api.post('/me/profile-picture', formData, {
+      const res = await api.post('/me/profile-picture', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      // Update user object locally so modal shows new image immediately
+      if (res.data && res.data.profilePicture) {
+        user.profilePicture = res.data.profilePicture;
+      }
       onSaved();
     } catch (err) {
       setProfilePicError(err.response?.data?.error || 'Profile picture upload failed');
@@ -142,117 +150,185 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 overflow-auto">
-      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: toast.type })} />
-      <form className="bg-white p-6 rounded shadow w-full max-w-md max-h-screen overflow-y-auto" onSubmit={handleSubmit}>
-        <h3 className="text-xl font-bold mb-4">Edit Profile</h3>
-        <div className="mb-3">
-          <label className="block mb-1">Name</label>
-          <input name="name" value={form.name} onChange={handleChange} className="w-full border px-2 py-1 rounded" />
-          {errors.name && <div className="text-red-500 text-sm">{errors.name}</div>}
-        </div>
-        <div className="mb-3">
-          <label className="block mb-1">Skills</label>
-          <div className="flex gap-2 mb-2">
-            <input
-              value={form.skillInput}
-              onChange={e => setForm(f => ({ ...f, skillInput: e.target.value }))}
-              className="border px-2 py-1 rounded flex-1"
-              placeholder="Add skill"
-              maxLength={30}
-            />
-            <button type="button" onClick={handleSkillAdd} className="bg-blue-500 text-white px-3 py-1 rounded">Add</button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {form.skills.map((skill, i) => (
-              <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center">
-                {skill}
-                <button type="button" onClick={() => handleSkillRemove(i)} className="ml-2 text-xs text-red-500">×</button>
-              </span>
-            ))}
-          </div>
-          {errors.skills && <div className="text-red-500 text-sm">{errors.skills}</div>}
-        </div>
-        <div className="mb-3">
-          <label className="block mb-1">Experience Years</label>
-          <input
-            name="years"
-            type="number"
-            min={0}
-            max={50}
-            value={form.experience.years}
-            onChange={handleChange}
-            className="w-full border px-2 py-1 rounded"
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 flex items-center justify-center z-50  overflow-y-auto">
+          {/* Backdrop with blur effect */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 backdrop-blur-md"
+            onClick={onClose}
           />
-          {errors.years && <div className="text-red-500 text-sm">{errors.years}</div>}
-        </div>
-        <div className="mb-3">
-          <label className="block mb-1">Experience Summary</label>
-          <textarea
-            name="summary"
-            value={form.experience.summary}
-            onChange={handleChange}
-            className="w-full border px-2 py-1 rounded"
-            maxLength={500}
-          />
-          {errors.summary && <div className="text-red-500 text-sm">{errors.summary}</div>}
-        </div>
-        <div className="mb-3">
-          <label className="block mb-1">Resume</label>
-          {user.resumeUrl ? (
-            <div className="flex items-center gap-2">
-              <a href={`http://localhost:5000${user.resumeUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Resume</a>
-            </div>
-          ) : (
-            <span className="text-gray-400">No resume uploaded.</span>
-          )}
-          <input
-            type="file"
-            accept="application/pdf"
-            style={{ display: 'none' }}
-            id="resume-upload-input"
-            onChange={handleResumeUpload}
-          />
-          <button
-            type="button"
-            onClick={() => document.getElementById('resume-upload-input').click()}
-            disabled={resumeUploading}
-            className="px-2 py-1 bg-blue-500 text-white rounded text-xs mt-2"
+
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: toast.type })} />
+
+          {/* Modal Container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="relative z-10 w-full max-w-2xl"
           >
-            {resumeUploading ? 'Uploading...' : 'Upload Resume'}
-          </button>
-          {resumeError && <div className="text-red-500 text-xs mt-1">{resumeError}</div>}
-        </div>
-        <div className="mb-3">
-          <label className="block mb-1">Profile Picture</label>
-          <div className="flex items-center gap-2">
-            <img src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : '/default-avatar.png'} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg"
-              style={{ display: 'none' }}
-              id="profile-pic-upload-input"
-              onChange={handleProfilePicUpload}
-            />
-            <button
-              type="button"
-              onClick={() => document.getElementById('profile-pic-upload-input').click()}
-              disabled={profilePicUploading}
-              className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+            <form 
+              className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+              onSubmit={handleSubmit}
             >
-              {profilePicUploading ? 'Uploading...' : 'Upload Picture'}
-            </button>
-          </div>
-          {profilePicError && <div className="text-red-500 text-xs mt-1">{profilePicError}</div>}
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-bold text-white">Edit Profile</h3>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="px-8 py-6 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Profile Picture Section */}
+                  <ProfilePictureSection
+                    user={user}
+                    profilePicUploading={profilePicUploading}
+                    profilePicError={profilePicError}
+                    handleProfilePicUpload={handleProfilePicUpload}
+                  />
+
+                  {/* Name Field */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                  >
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none"
+                      placeholder="Enter your full name"
+                    />
+                    {errors.name && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {errors.name}
+                      </motion.p>
+                    )}
+                  </motion.div>
+
+                  {/* Skills Section */}
+                  <SkillsSection
+                    form={form}
+                    setForm={setForm}
+                    errors={errors}
+                    handleSkillAdd={handleSkillAdd}
+                    handleSkillRemove={handleSkillRemove}
+                  />
+
+                  {/* Experience Section */}
+                  <ExperienceSection
+                    form={form}
+                    handleChange={handleChange}
+                    errors={errors}
+                  />
+
+                  {/* Resume Section */}
+                  <ResumeSection
+                    user={user}
+                    resumeUploading={resumeUploading}
+                    resumeError={resumeError}
+                    handleResumeUpload={handleResumeUpload}
+                  />
+
+                  {/* API Error */}
+                  {errors.api && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-red-700 text-sm font-medium">{errors.api}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-8 py-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 active:scale-95 transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving Changes...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+
+          <style jsx>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 8px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: #f1f5f9;
+              border-radius: 10px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: #cbd5e1;
+              border-radius: 10px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: #94a3b8;
+            }
+          `}</style>
         </div>
-        {errors.api && <div className="text-red-500 text-sm mb-2">{errors.api}</div>}
-        <div className="flex justify-end gap-2 mt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-          <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </form>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

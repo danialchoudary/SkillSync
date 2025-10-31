@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import ApplyModal from '../features/jobs/components/ApplyModal';
 
 export default function ApplyModal({ open, onClose, onSubmit, resumeUrl, onResumeUpload }) {
   const [coverLetter, setCoverLetter] = useState('');
