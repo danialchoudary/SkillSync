@@ -54,13 +54,13 @@ export default function Dashboard() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
         className="text-center"
       >
-        <motion.div 
+        <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full"
@@ -129,7 +129,7 @@ export default function Dashboard() {
       <Topbar user={user} notifications={notifications} />
       <div className="relative flex flex-1 overflow-hidden">
         {/* Fixed Sidebar */}
-  <div className="fixed top-14 left-0 h-[calc(100vh-3.5rem)] z-20 w-64">
+        <div className="fixed top-14 left-0 h-[calc(100vh-3.5rem)] z-20 w-64">
           <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} unreadCount={unreadCount} />
         </div>
         {/* Main Content with left margin for sidebar */}
@@ -146,7 +146,7 @@ export default function Dashboard() {
                   className="w-full flex flex-col justify-center items-center"
                 >
                   {/* Welcome Header Section */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
@@ -166,10 +166,10 @@ export default function Dashboard() {
                           <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full blur-md opacity-30"></div>
                           {user.role === 'recruiter' ? (
                             user.companyLogo ? (
-                              <img 
-                                src={`http://localhost:5000${user.companyLogo}`} 
-                                alt="company logo" 
-                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl" 
+                              <img
+                                src={user.companyLogo.startsWith('http') ? user.companyLogo : `http://localhost:5000${user.companyLogo}`}
+                                alt="company logo"
+                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
                               />
                             ) : (
                               <span className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 border-4 border-white shadow-xl">
@@ -178,10 +178,10 @@ export default function Dashboard() {
                             )
                           ) : (
                             user.profilePicture ? (
-                              <img 
-                                src={`http://localhost:5000${user.profilePicture}`} 
-                                alt="avatar" 
-                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl" 
+                              <img
+                                src={user.profilePicture.startsWith('http') ? user.profilePicture : `http://localhost:5000${user.profilePicture}`}
+                                alt="avatar"
+                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
                               />
                             ) : (
                               <span className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-500 border-4 border-white shadow-xl">
@@ -211,7 +211,7 @@ export default function Dashboard() {
                   {/* Main Grid Layout - scrollable */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
                     {/* Left Column - Stats & Profile */}
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
@@ -269,11 +269,11 @@ export default function Dashboard() {
                                 transition={{ delay: 0.4 + index * 0.1 }}
                                 whileHover={{ x: 2, transition: { duration: 0.2 } }}
                               >
-                                <JobCard job={job} onApply={() => {}} />
+                                <JobCard job={job} onApply={() => { }} />
                               </motion.div>
                             ))
                           ) : (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               className="text-center py-6"
@@ -300,7 +300,7 @@ export default function Dashboard() {
         <Footer />
       </div>
       {/* Custom scrollbar styles */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

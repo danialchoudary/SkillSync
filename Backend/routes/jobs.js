@@ -1,8 +1,38 @@
 import express from 'express';
 import Job from '../models/Job.js';
+import JobApplication from '../models/JobApplication.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+
+// Helper to get user ID from token without throwing error if no token
+const getUserIdFromRequest = (req) => {
+  const token = req.cookies.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded.id;
+  } catch (err) {
+    return null;
+  }
+};
+
+// PUT /jobs/:id - update a job (for compatibility with frontend)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const job = await Job.findOneAndUpdate(
+      { _id: req.params.id, recruiter: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!job) return res.status(404).json({ error: 'Job not found.' });
+    res.json(job);
+  } catch (err) {
+    console.error('Update job error:', err);
+    res.status(500).json({ error: 'Failed to update job. Please try again.' });
+  }
+});
 
 // Save a job
 router.post('/:id/save', authMiddleware, async (req, res) => {
@@ -50,15 +80,26 @@ router.get('/saved', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user._id).populate({ path: 'savedJobs', populate: { path: 'recruiter', select: 'companyLogo' } });
     // Logging for debugging
     console.log('Populated savedJobs:', user.savedJobs);
-    const jobsWithLogo = (user.savedJobs || []).map(job => {
+    const userStatusMap = {};
+    if (req.user) {
+      const userApplications = await JobApplication.find({ jobSeekerId: req.user._id });
+      userApplications.forEach(app => {
+        userStatusMap[app.jobId.toString()] = app.status;
+      });
+    }
+
+    const jobsWithStatus = (user.savedJobs || []).map(job => {
       if (!job) return null;
       let jobObj = job.toObject ? job.toObject() : job;
+      const id = jobObj._id || jobObj.id;
       return {
         ...jobObj,
         companyLogo: jobObj.recruiter?.companyLogo || '',
+        applied: !!userStatusMap[id.toString()],
+        status: userStatusMap[id.toString()] || null
       };
     }).filter(Boolean);
-    res.json(jobsWithLogo);
+    res.json(jobsWithStatus);
   } catch (err) {
     console.error('Fetch saved jobs error:', err);
     res.status(500).json({ error: 'Failed to fetch saved jobs. Please try again.' });
@@ -91,14 +132,30 @@ router.post('/', authMiddleware, async (req, res) => {
 // GET /jobs - get all jobs
 router.get('/', async (req, res) => {
   try {
+    const userId = getUserIdFromRequest(req);
     const jobs = await Job.find()
       .sort({ createdAt: -1 })
       .populate('recruiter', 'companyLogo');
-    // Map jobs to include companyLogo at top level for frontend
-    const jobsWithLogo = jobs.map(job => ({
-      ...job.toObject(),
-      companyLogo: job.recruiter?.companyLogo || '',
-    }));
+
+    let userStatusMap = {};
+    if (userId) {
+      const userApplications = await JobApplication.find({ jobSeekerId: userId });
+      userApplications.forEach(app => {
+        userStatusMap[app.jobId.toString()] = app.status;
+      });
+    }
+
+    // Map jobs to include companyLogo and application status
+    const jobsWithLogo = jobs.map(job => {
+      const jobObj = job.toObject();
+      const id = jobObj._id || jobObj.id;
+      return {
+        ...jobObj,
+        companyLogo: jobObj.recruiter?.companyLogo || '',
+        applied: !!userStatusMap[id.toString()],
+        status: userStatusMap[id.toString()] || null
+      };
+    });
     res.json(jobsWithLogo);
   } catch (err) {
     console.error('Fetch jobs error:', err);

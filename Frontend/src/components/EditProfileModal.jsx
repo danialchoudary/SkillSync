@@ -111,13 +111,28 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
     }
   };
 
+  const [localResumeUrl, setLocalResumeUrl] = useState(user?.resumeUrl || user?.resumeLink || '');
+
+  useEffect(() => {
+    if (user) {
+      setLocalResumeUrl(user.resumeUrl || user.resumeLink || '');
+    }
+  }, [user]);
+
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setResumeUploading(true);
     setResumeError('');
     try {
-      await uploadResume(file);
+      const res = await uploadResume(file);
+      // Update user object locally so modal shows new resume immediately
+      if (res.data) {
+        if (res.data.resumeUrl) {
+          setLocalResumeUrl(res.data.resumeUrl);
+          user.resumeUrl = res.data.resumeUrl;
+        }
+      }
       onSaved();
     } catch (err) {
       setResumeError(err.response?.data?.error || 'Resume upload failed');
@@ -138,8 +153,9 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       // Update user object locally so modal shows new image immediately
-      if (res.data && res.data.profilePicture) {
-        user.profilePicture = res.data.profilePicture;
+      if (res.data) {
+        if (res.data.profilePictureUrl) user.profilePicture = res.data.profilePictureUrl;
+        if (res.data.profilePicture) user.profilePicture = res.data.profilePicture; // Fallback
       }
       onSaved();
     } catch (err) {
@@ -173,7 +189,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="relative z-10 w-full max-w-2xl"
           >
-            <form 
+            <form
               className="bg-white rounded-2xl shadow-2xl overflow-hidden"
               onSubmit={handleSubmit}
             >
@@ -252,7 +268,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
 
                   {/* Resume Section */}
                   <ResumeSection
-                    user={user}
+                    user={{ ...user, resumeUrl: localResumeUrl }}
                     resumeUploading={resumeUploading}
                     resumeError={resumeError}
                     handleResumeUpload={handleResumeUpload}
@@ -311,7 +327,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
             </form>
           </motion.div>
 
-          <style jsx>{`
+          <style>{`
             .custom-scrollbar::-webkit-scrollbar {
               width: 8px;
             }

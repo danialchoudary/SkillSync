@@ -4,6 +4,10 @@ import api from '../../services/api';
 export const register = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/register', data);
+    // Store token in localStorage for Socket.IO access
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+    }
     return res.data.user;
   } catch (err) {
     return rejectWithValue(err.response?.data?.error || 'Registration failed');
@@ -13,6 +17,10 @@ export const register = createAsyncThunk('auth/register', async (data, { rejectW
 export const login = createAsyncThunk('auth/login', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/login', data);
+    // Store token in localStorage for Socket.IO access
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+    }
     return res.data.user;
   } catch (err) {
     return rejectWithValue(err.response?.data?.error || 'Login failed');
@@ -22,8 +30,11 @@ export const login = createAsyncThunk('auth/login', async (data, { rejectWithVal
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
     await api.post('/auth/logout');
+    // Clear token from localStorage
+    localStorage.removeItem('token');
     return null;
   } catch (err) {
+    localStorage.removeItem('token'); // Clear even on error
     return rejectWithValue('Logout failed');
   }
 });

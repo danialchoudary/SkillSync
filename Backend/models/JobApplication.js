@@ -5,7 +5,11 @@ const jobApplicationSchema = new mongoose.Schema({
   jobSeekerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   resumeUrl: { type: String },
   coverLetter: { type: String },
-  status: { type: String, default: 'pending' },
+  status: {
+    type: String,
+    enum: ['applied', 'screening', 'interviewing', 'hired', 'rejected'],
+    default: 'applied'
+  },
   appliedAt: { type: Date, default: Date.now },
 });
 

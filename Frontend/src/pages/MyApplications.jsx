@@ -15,7 +15,10 @@ export default function MyApplications() {
   useEffect(() => {
     api.get('/me').then(res => setUser(res.data)).catch(() => setUser({}));
     api.get('/applications/mine')
-      .then(res => setApplications(res.data))
+      .then(res => {
+        console.log('Applications data:', res.data); // Log the applications data
+        setApplications(res.data);
+      })
       .catch(() => setApplications([]))
       .finally(() => setLoading(false));
   }, []);
@@ -188,11 +191,11 @@ export default function MyApplications() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Job Title</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Company</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Applied Date</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cover Letter</th>
+                      <th className="px-6 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Job Title</th>
+                      <th className="px-6 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Company</th>
+                      <th className="px-6 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Applied Date</th>
+                      <th className="px-6 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Cover Letter</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -213,11 +216,25 @@ export default function MyApplications() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3 shadow-md">
-                                {(app.jobId?.company || '?')[0].toUpperCase()}
-                              </div>
+                              {app.jobId ? (
+                                app.jobId.companyLogo && app.jobId.companyLogo.trim() !== '' ? (
+                                  <img
+                                    src={app.jobId.companyLogo}
+                                    alt={`${app.jobId.company} logo`}
+                                    className="w-10 h-10 rounded-lg mr-3 shadow-md"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3 shadow-md">
+                                    {(app.jobId.company || '?')[0].toUpperCase()}
+                                  </div>
+                                )
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-300 rounded-lg flex items-center justify-center text-gray-600 font-bold text-sm mr-3 shadow-md">
+                                  N/A
+                                </div>
+                              )}
                               <div className="text-sm font-medium text-gray-900">
-                                {app.jobId?.company || '-'}
+                                {app.jobId?.company || 'Unknown Company'}
                               </div>
                             </div>
                           </td>

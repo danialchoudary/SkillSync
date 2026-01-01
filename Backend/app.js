@@ -11,39 +11,22 @@ import jobsRouter from './routes/jobs.js';
 import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
 
+const allowedOrigins = [
+  "http://localhost:5173", // for local dev
+  process.env.FRONTEND_URL // for deployed frontend
+];
+
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:5173', // or your frontend port
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Ensure upload directory exists
-
-const resumesDir = path.join(process.cwd(), 'Backend', 'uploads', 'resumes');
-const profilePicturesDir = path.join(process.cwd(), 'Backend', 'uploads', 'profile-pictures');
-try {
-  fs.mkdirSync(resumesDir, { recursive: true });
-  fs.mkdirSync(profilePicturesDir, { recursive: true });
-} catch (err) {
-  console.error('Error creating upload directories:', err);
-}
-
-// Serve static files from /uploads
-app.use('/uploads/resumes', (req, res, next) => {
-  // Remove leading slash from req.path to avoid path.join ignoring resumesDir
-  const relativePath = req.path.replace(/^\//, '');
-  const filePath = path.join(resumesDir, relativePath);
-  fs.access(filePath, fs.constants.F_OK, err => {
-    if (err) {
-      return res.status(404).send('Resume file not found');
-    }
-    next();
-  });
-}, express.static(resumesDir));
-app.use('/uploads/profile-pictures', express.static(profilePicturesDir));
+// Serve static files (if any other than uploads are needed, unrelated to cloud storage)
+app.use('/uploads', express.static(path.join(process.cwd(), 'Backend', 'uploads')));
 
 app.use('/auth', authRoutes);
 app.use('/me', meRoutes);

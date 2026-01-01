@@ -1,20 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaSmile, FaPaperclip } from 'react-icons/fa';
 
-export default function MessageInput({ input, setInput, sending, selectedUser, currentUser, handleSend }) {
+export default function MessageInput({ input, setInput, sending, selectedUser, currentUser, handleSend, onTyping }) {
   const [isFocused, setIsFocused] = useState(false);
+  const typingTimeoutRef = useRef(null);
   // Allow sending messages to yourself: only disable if sending or missing users
   const isDisabled = sending || !selectedUser || !currentUser || (selectedUser._id !== currentUser._id && !selectedUser);
   const canSend = !isDisabled && input && input.trim();
+
+  // Handle typing indicator
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+
+    // Emit typing start
+    if (onTyping) {
+      onTyping(true);
+      // Clear any existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      // Set timeout to stop typing indicator after 1.5 seconds of no input
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping(false);
+      }, 1500);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="px-6 py-4 bg-white">
       <div onSubmit={handleSend} className="relative">
         <div className={`
           relative flex items-center gap-3 bg-gray-50 rounded-2xl border-2 transition-all duration-300
-          ${isFocused 
-            ? 'border-blue-500 shadow-lg shadow-blue-100' 
+          ${isFocused
+            ? 'border-blue-500 shadow-lg shadow-blue-100'
             : 'border-gray-200 hover:border-gray-300'
           }
           ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}
@@ -35,13 +63,16 @@ export default function MessageInput({ input, setInput, sending, selectedUser, c
           <input
             className="flex-1 bg-transparent px-2 py-4 text-sm text-gray-900 placeholder-gray-400 focus:outline-none disabled:cursor-not-allowed"
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={handleInputChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if (canSend) handleSend(e);
+                if (canSend) {
+                  if (onTyping) onTyping(false); // Stop typing on send
+                  handleSend(e);
+                }
               }
             }}
             placeholder={`Message ${selectedUser.role === 'recruiter' ? (selectedUser.companyName || 'Company') : (selectedUser.name || selectedUser.email)}`}

@@ -35,17 +35,17 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, scale: 1.005 }}
       transition={{ duration: 0.3 }}
-      className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 mb-4 hover:shadow-xl hover:border-blue-200 transition-all duration-300 overflow-hidden group"
+      className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 overflow-hidden group h-full flex flex-col"
     >
       {/* Decorative gradient background */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-full blur-2xl group-hover:from-blue-500/10 group-hover:to-indigo-500/10 transition-all duration-500"></div>
 
-      {/* Applied badge - place in its own row above content */}
+      {/* Job Status Badge */}
       {isApplied && (
         <div className="flex justify-end mb-2">
           <motion.div
@@ -53,8 +53,15 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
             animate={{ scale: 1, rotate: 0 }}
             className="z-10"
           >
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold rounded-full shadow-lg shadow-green-500/30">
-              <FaCheckCircle /> Applied
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-white text-xs font-bold rounded-full shadow-lg ${job.status === 'accepted' ? 'bg-green-500 shadow-green-500/30' :
+                job.status === 'rejected' ? 'bg-red-500 shadow-red-500/30' :
+                  job.status === 'pending' ? 'bg-yellow-500 shadow-yellow-500/30' :
+                    'bg-gray-500 shadow-gray-500/30' // Default styling for unknown status
+              }`}>
+              {job.status === 'accepted' && <FaCheckCircle />} {/* Accepted Icon */}
+              {job.status === 'rejected' && <FaRegBookmark />} {/* Rejected Icon */}
+              {job.status === 'pending' && <FaClock />} {/* Pending Icon */}
+              {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Unknown'}
             </span>
           </motion.div>
         </div>
@@ -89,23 +96,23 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
 
             {/* Job Info */}
             <div className="flex-1 min-w-0">
-              <motion.h4 
+              <motion.h4
                 className="font-bold text-xl text-gray-900 mb-2 truncate"
                 whileHover={{ x: 2 }}
               >
                 {job.title}
               </motion.h4>
-              
+
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
                   whileHover={{ x: 2 }}
                 >
                   <FaBuilding className="text-blue-500" />
                   <span className="font-medium">{job.company}</span>
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
                   whileHover={{ x: 2 }}
                 >
@@ -118,7 +125,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
 
           {/* Salary Badge - hide if applied */}
           {!isApplied && (
-            <motion.div 
+            <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex-shrink-0"
             >
@@ -133,7 +140,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
         </div>
 
         {/* Posted Date */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -147,7 +154,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
 
         {/* Action Buttons */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}

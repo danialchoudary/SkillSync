@@ -13,7 +13,7 @@ export default function SkillsSection({ form, setForm, errors, handleSkillAdd, h
       </label>
       <div className="flex gap-2 mb-3">
         <input
-          value={form.skillInput}
+          value={form.skillInput || ''}
           onChange={e => setForm(f => ({ ...f, skillInput: e.target.value }))}
           onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleSkillAdd(form.skillInput))}
           className="flex-1 border-2 border-gray-200 px-4 py-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none"

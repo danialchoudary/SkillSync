@@ -25,15 +25,8 @@ router.post('/profile-picture', userUpdateLimiter, authMiddleware, profilePictur
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // Delete old profile picture if present
-    if (user.profilePicture) {
-      const oldPath = path.join(process.cwd(), 'Backend', 'uploads', 'profile-pictures', path.basename(user.profilePicture));
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
     // Set new profile picture URL
-    const publicUrl = `/uploads/profile-pictures/${req.file.filename}`;
+    const publicUrl = req.file.path;
     user.profilePicture = publicUrl;
     await user.save();
     res.json({ profilePictureUrl: publicUrl });
@@ -56,15 +49,8 @@ router.post('/company-logo', userUpdateLimiter, authMiddleware, companyLogoUploa
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // Delete old company logo if present
-    if (user.companyLogo) {
-      const oldPath = path.join(process.cwd(), 'Backend', 'uploads', 'profile-pictures', path.basename(user.companyLogo));
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
     // Set new company logo URL
-    const publicUrl = `/uploads/profile-pictures/${req.file.filename}`;
+    const publicUrl = req.file.path;
     user.companyLogo = publicUrl;
     await user.save();
     res.json({ companyLogoUrl: publicUrl });
@@ -93,12 +79,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
     // Check if resume file exists
     let resumeUrl = user.resumeLink;
-    if (resumeUrl) {
-      const resumePath = path.join(process.cwd(), 'Backend', resumeUrl.replace('/uploads/', 'uploads/'));
-      if (!fs.existsSync(resumePath)) {
-        resumeUrl = null;
-      }
-    }
+    // We don't check for existence on Cloudinary for every request to save performance
     res.json({
       id: user._id,
       name: user.name,
@@ -212,11 +193,6 @@ router.post('/resume', userUpdateLimiter, authMiddleware, resumeUploadMiddleware
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
-    }
-    // Delete old resume if present
-    if (user.resumeLink) {
-      const oldPath = path.join(process.cwd(), 'Backend', 'uploads', 'resumes', path.basename(user.resumeLink));
-      fs.unlink(oldPath, err => {}); // ignore error
     }
     // Set new resume URL
     const publicUrl = `/uploads/resumes/${req.file.filename}`;

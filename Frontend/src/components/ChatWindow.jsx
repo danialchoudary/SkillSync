@@ -2,14 +2,16 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
+import { getImageUrl } from '../utils/urlHelper';
 
 export default function ChatWindow({
-  selectedUser, messages, loading, currentUser, input, setInput, sending, handleSend
+  selectedUser, messages, loading, currentUser, input, setInput, sending, handleSend, onTyping, typingUsers
 }) {
-  console.log('Selected user data:', selectedUser); // Debug log to verify selectedUser object
+  console.log('Selected user data:', selectedUser); // Debug log
+  const isTyping = typingUsers?.[selectedUser?._id];
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 relative overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-br from-gray-50 via-white to-gray-50 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
         <div className="absolute inset-0" style={{
@@ -26,20 +28,20 @@ export default function ChatWindow({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col relative z-10"
+            className="flex-1 flex flex-col min-h-0 relative z-10"
           >
             {/* Chat Header */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm"
+              className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm shrink-0"
             >
               <div className="flex items-center gap-4">
                 <div className="relative">
                   {selectedUser.profilePicture || selectedUser.companyLogo ? (
                     <img
-                      src={`http://localhost:5000${selectedUser.profilePicture || selectedUser.companyLogo || '/default-logo.png'}`}
+                      src={getImageUrl(selectedUser.profilePicture || selectedUser.companyLogo)}
                       alt="avatar"
                       className="w-11 h-11 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                     />
@@ -52,7 +54,7 @@ export default function ChatWindow({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-bold text-gray-900 truncate">
-                    {selectedUser.role === 'recruiter' 
+                    {selectedUser.role === 'recruiter'
                       ? (selectedUser.companyName || 'Unnamed Company')
                       : (selectedUser.name || selectedUser.email)
                     }
@@ -69,7 +71,7 @@ export default function ChatWindow({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.2 }}
-              className="flex-1 overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+              className="flex-1 overflow-y-auto px-6 py-4"
             >
               <AnimatePresence mode="wait">
                 {loading ? (
@@ -125,6 +127,22 @@ export default function ChatWindow({
                   </motion.div>
                 )}
               </AnimatePresence>
+              {/* Typing Indicator */}
+              {isTyping && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="flex items-center gap-2 text-gray-400 text-sm mt-2"
+                >
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span>{selectedUser.name || selectedUser.companyName} is typing...</span>
+                </motion.div>
+              )}
             </motion.div>
 
             {/* Message Input */}
@@ -141,6 +159,7 @@ export default function ChatWindow({
                 selectedUser={selectedUser}
                 currentUser={currentUser}
                 handleSend={handleSend}
+                onTyping={onTyping}
               />
             </motion.div>
           </motion.div>
@@ -154,10 +173,10 @@ export default function ChatWindow({
             className="flex-1 flex flex-col items-center justify-center relative z-10 px-6"
           >
             <motion.div
-              animate={{ 
+              animate={{
                 y: [0, -10, 0],
               }}
-              transition={{ 
+              transition={{
                 duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut"

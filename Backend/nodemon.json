@@ -1,0 +1,8 @@
+{
+    "ignore": [
+        "uploads/*",
+        "node_modules/*",
+        ".env"
+    ],
+    "ext": "js,mjs,cjs,json"
+}

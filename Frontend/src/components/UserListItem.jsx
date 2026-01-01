@@ -1,19 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaUser, FaBuilding } from 'react-icons/fa';
+import { getImageUrl } from '../utils/urlHelper';
 
 export default function UserListItem({ user, currentUser, selectedUser, unread, onUserSelect }) {
   const isSelected = selectedUser && selectedUser._id === user._id;
-  
+
   let avatar = null;
   if (user.role === 'recruiter') {
     if (user.companyLogo) {
       avatar = (
         <div className="relative">
-          <img 
-            src={`http://localhost:5000${user.companyLogo}`} 
-            alt="logo" 
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
+          <img
+            src={getImageUrl(user.companyLogo)}
+            alt="logo"
+            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
           />
           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
             <FaBuilding className="text-white text-[8px]" />
@@ -31,10 +32,10 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
     if (user.profilePicture) {
       avatar = (
         <div className="relative">
-          <img 
-            src={`http://localhost:5000${user.profilePicture}`} 
-            alt="avatar" 
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
+          <img
+            src={getImageUrl(user.profilePicture)}
+            alt="avatar"
+            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
           />
           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
         </div>
@@ -58,8 +59,8 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
         className={`
           flex items-center gap-4 w-full text-left px-4 py-3.5 
           transition-all duration-200 ease-in-out
-          ${isSelected 
-            ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500' 
+          ${isSelected
+            ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500'
             : 'hover:bg-gray-50 border-l-4 border-transparent hover:border-gray-200'
           }
         `}
@@ -77,8 +78,8 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
               text-sm font-semibold truncate
               ${isSelected ? 'text-blue-900' : 'text-gray-900'}
             `}>
-              {user.role === 'recruiter' 
-                ? (user.companyName || 'Unnamed Company') 
+              {user.role === 'recruiter'
+                ? (user.companyName || 'Unnamed Company')
                 : (user.name || user.email)
               }
             </h3>
@@ -92,7 +93,7 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
               </motion.span>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className={`
               text-xs truncate

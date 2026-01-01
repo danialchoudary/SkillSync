@@ -5,6 +5,20 @@ import Toast from './Toast';
 import { FaBuilding, FaUser, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
+function StatusBadge({ status }) {
+  const statusColors = {
+    pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    accepted: 'bg-green-100 text-green-800 border-green-300',
+    rejected: 'bg-red-100 text-red-800 border-red-300'
+  };
+  
+  return (
+    <span className={`px-3 py-1 rounded text-sm font-semibold border ${statusColors[status] || statusColors.pending}`}>
+      {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending'}
+    </span>
+  );
+}
+
 export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave, onUnsave, user }) {
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState(null);
@@ -58,26 +72,23 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
         <div className="text-blue-600 font-semibold text-md flex items-center gap-1">
           <FaMoneyBillWave /> {job.salary}
         </div>
-  </div>
-  <div className="text-xs text-gray-500 mt-1">
-    Posted: {job.createdAt ? new Date(job.createdAt).toLocaleString() : (job.postedAt || 'Unknown')}
-  </div>
+      </div>
+      <div className="text-xs text-gray-500 mt-1">
+        Posted: {job.createdAt ? new Date(job.createdAt).toLocaleString() : (job.postedAt || 'Unknown')}
+      </div>
       {isSavedSection ? (
         <div className="flex gap-2 mt-2">
           {isJobSeeker && (
             job.applied ? (
-              <button
-                className="px-4 py-1 bg-green-600 text-white rounded cursor-default"
-                disabled
-              >
-                Applied
-              </button>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={job.status} />
+              </div>
             ) : (
               <button
-                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                className="px-4 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition shadow-sm"
                 onClick={handleApplyClick}
               >
-                Apply
+                Apply Now
               </button>
             )
           )}
@@ -90,23 +101,18 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
         </div>
       ) : onApply ? (
         <div className="flex gap-2 mt-2">
-          {isJobSeeker ? (
-            job.applied ? (
-              <button
-                className="px-4 py-1 bg-green-600 text-white rounded cursor-default"
-                disabled
-              >
-                Applied
-              </button>
-            ) : (
-              <button
-                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                onClick={handleApplyClick}
-              >
-                Apply
-              </button>
-            )
-          ) : null}
+          {job.applied ? (
+            <div className="flex items-center gap-2">
+              <StatusBadge status={job.status} />
+            </div>
+          ) : (
+            <button
+              className="px-4 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition shadow-sm"
+              onClick={handleApplyClick}
+            >
+              Apply Now
+            </button>
+          )}
           {typeof saved !== 'undefined' && (
             saved ? (
               <button
@@ -135,7 +141,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
             )
           )}
         </div>
-      ) : ((onEdit || onDelete) ? (
+      ) : ((onEdit || onDelete) && (
         <div className="flex gap-2 mt-2">
           {onEdit && (
             <button
@@ -153,10 +159,6 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
               Delete
             </button>
           )}
-        </div>
-      ) : (
-        <div className="flex gap-2 mt-2">
-          {/* ...existing code... */}
         </div>
       ))}
       {isJobSeeker && showModal && (

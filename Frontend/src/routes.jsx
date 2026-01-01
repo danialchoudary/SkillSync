@@ -9,9 +9,22 @@ import NotFound from './pages/NotFound';
 import Profile from './components/Profile';
 import Jobs from './pages/Jobs';
 import SavedJobs from './pages/SavedJobs';
+import RecruiterDashboard from './pages/RecruiterDashboard';
+import JobForm from './components/JobForm';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';
+
+const handlePostJob = async (job) => {
+  try {
+    // Simulate API call or integrate actual API logic here
+    console.log('Job posted:', job);
+    alert('Job posted successfully!');
+  } catch (error) {
+    console.error('Failed to post job:', error);
+    alert('Failed to post job. Please try again.');
+  }
+};
 
 const routes = [
   {
@@ -27,6 +40,14 @@ const routes = [
     element: (
       <ProtectedRoute allowedRoles={['recruiter']}>
         <Messages />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/recruiter/postjob',
+    element: (
+      <ProtectedRoute allowedRoles={['recruiter']}>
+        <JobForm onPost={handlePostJob} />
       </ProtectedRoute>
     ),
   },
@@ -46,6 +67,14 @@ const routes = [
     element: (
       <ProtectedRoute allowedRoles={['admin']}>
         <AdminPanel />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/recruiter/dashboard',
+    element: (
+      <ProtectedRoute allowedRoles={['recruiter']}>
+        <RecruiterDashboard />
       </ProtectedRoute>
     ),
   },
@@ -86,6 +115,14 @@ const routes = [
     element: (
       <ProtectedRoute allowedRoles={['jobseeker', 'admin', 'recruiter']}>
         <MyApplications />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/recruiter/profile',
+    element: (
+      <ProtectedRoute allowedRoles={['recruiter']}>
+        <RecruiterPanel />
       </ProtectedRoute>
     ),
   },

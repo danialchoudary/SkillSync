@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import UserList from '../components/UserList';
 import ChatWindow from '../components/ChatWindow';
 import { fetchAllUsers } from '../services/userApi';
@@ -10,6 +10,7 @@ import Topbar from '../components/Topbar';
 import Footer from '../components/Footer';
 import Toast from '../components/Toast';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { connectSocket, disconnectSocket, onEvent, offEvent, emitEvent, getSocket } from '../services/socketService';
 export default function Messages() {
   // For recruiter sidebar state
   const [activeSection, setActiveSection] = useState('messages');
@@ -27,6 +28,7 @@ export default function Messages() {
   const [unread, setUnread] = useState({}); // { userId: count }
   const [toast, setToast] = useState('');
   const prevMessagesRef = useRef([]);
+  const [typingUsers, setTypingUsers] = useState({}); // { senderId: true }
 
   // Enhanced error handling for user loading
   useEffect(() => {
@@ -96,11 +98,41 @@ export default function Messages() {
     // Prevent sending if input is empty, only whitespace, already sending, or no user selected
     if (!input || !input.trim() || !selectedUser || !currentUser || sending) return;
     setSending(true);
-    // Add error handling for handleSend
     try {
-      const res = await sendMessage(selectedUser._id, input);
-      setMessages([...messages, res.data]);
+      const socketInstance = getSocket();
+
+      // Optimistic UI Update: Show message immediately
+      const tempMessage = {
+        _id: Date.now().toString(), // Temporary ID
+        senderId: currentUser._id,
+        receiverId: selectedUser._id,
+        content: input.trim(),
+        seen: false,
+        createdAt: new Date().toISOString(),
+        sender: currentUser, // Needed for ChatWindow to render right side
+        receiver: selectedUser
+      };
+
+      setMessages(prev => [...prev, tempMessage]);
       setInput('');
+
+      if (socketInstance && socketInstance.connected) {
+        // Send via Socket.IO
+        emitEvent('send_message', { receiverId: selectedUser._id, content: input.trim() }, (response) => {
+          if (response?.error) {
+            console.error('Socket send_message error:', response.error);
+            // Rollback optimistic update on error (optional, or show error state)
+            setMessages(prev => prev.filter(m => m._id !== tempMessage._id));
+            alert('Failed to send message. Please try again.');
+          }
+        });
+      } else {
+        // Fallback to REST API
+        console.warn('[Messages] Socket not connected, using REST fallback');
+        const res = await sendMessage(selectedUser._id, input);
+        setMessages([...messages, res.data]);
+        setInput('');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
@@ -108,7 +140,96 @@ export default function Messages() {
     setSending(false);
   };
 
-  // Poll for new messages every 5 seconds (no toast)
+  // Typing indicator handler
+  const handleTyping = useCallback((isTyping) => {
+    if (selectedUser) {
+      emitEvent('typing', { receiverId: selectedUser._id, isTyping });
+    }
+  }, [selectedUser]);
+
+  // Connect Socket.IO once currentUser is loaded
+  const [socketReady, setSocketReady] = useState(false);
+
+  useEffect(() => {
+    console.log('[Messages] Socket connection effect - currentUser:', !!currentUser);
+    if (!currentUser) return;
+
+    const token = localStorage.getItem('token');
+    console.log('[Messages] Token from localStorage:', token ? 'Present' : 'Missing');
+
+    if (token) {
+      console.log('[Messages] Calling connectSocket...');
+      const socket = connectSocket(token);
+      console.log('[Messages] connectSocket returned:', socket ? 'Socket instance' : 'null/undefined');
+
+      // Listen for successful connection
+      const handleConnect = () => {
+        console.log('[Messages] Socket connected, setting ready state');
+        setSocketReady(true);
+      };
+
+      if (socket) {
+        socket.on('connect', handleConnect);
+        // If already connected
+        if (socket.connected) {
+          console.log('[Messages] Socket was already connected');
+          setSocketReady(true);
+        }
+      }
+
+      return () => {
+        if (socket) {
+          socket.off('connect', handleConnect);
+        }
+      };
+    }
+  }, [currentUser]);
+
+  // Real-time message listener - only subscribe when socket is ready
+  useEffect(() => {
+    if (!socketReady) return;
+
+    const handleReceiveMessage = (message) => {
+      // Only add if conversation is with this sender/receiver
+      if (selectedUser && (message.sender?._id === selectedUser._id || message.receiver?._id === selectedUser._id)) {
+        setMessages((prev) => {
+          // Check if we already have this message (by ID)
+          const exists = prev.find(m => m._id === message._id);
+          if (exists) return prev;
+
+          // If this is the real version of a temp message I sent, replace the temp one
+          // (Simple heuristic: if I sent it recently and content matches)
+          if (message.senderId === currentUser._id) {
+            const tempMatch = prev.find(m =>
+              m._id.length > 20 && // Temp IDs are timestamps (short) or large numbers? Date.now() is 13 digits. MongoDB ObjectIds are 24 hex chars.
+              !isNaN(Number(m._id)) && // Check if it's our numeric temp ID
+              m.content === message.content &&
+              m.receiverId === message.receiverId
+            );
+            if (tempMatch) {
+              return prev.map(m => m._id === tempMatch._id ? message : m);
+            }
+          }
+
+          return [...prev, message];
+        });
+      }
+    };
+
+    const handleTypingEvent = ({ senderId, isTyping }) => {
+      setTypingUsers((prev) => ({ ...prev, [senderId]: isTyping }));
+    };
+
+    onEvent('receive_message', handleReceiveMessage);
+    onEvent('user_typing', handleTypingEvent);
+
+    return () => {
+      offEvent('receive_message', handleReceiveMessage);
+      offEvent('user_typing', handleTypingEvent);
+    };
+  }, [socketReady, selectedUser]);
+
+  // Fallback Poll for new messages every 30 seconds (reduced frequency due to sockets)
   useEffect(() => {
     if (!selectedUser) return;
     const interval = setInterval(async () => {
@@ -116,8 +237,8 @@ export default function Messages() {
         const res = await fetchConversation(selectedUser._id);
         setMessages(res.data);
         prevMessagesRef.current = res.data;
-      } catch {}
-    }, 5000);
+      } catch { }
+    }, 30000); // Reduced from 5s to 30s
     return () => clearInterval(interval);
   }, [selectedUser, currentUser]);
 
@@ -132,7 +253,7 @@ export default function Messages() {
           const res = await fetchConversation(user._id);
           const count = res.data.filter(m => m.senderId === user._id && !m.seen).length;
           unreadMap[user._id] = count;
-        } catch {}
+        } catch { }
       }
       setUnread(unreadMap);
     };
@@ -200,16 +321,28 @@ export default function Messages() {
               onRetryLoadUsers={handleRetryLoadUsers}
             />
             {/* Chat window */}
-            <ChatWindow
-              selectedUser={selectedUser}
-              messages={messages}
-              loading={loading}
-              currentUser={currentUser}
-              input={input}
-              setInput={setInput}
-              sending={sending}
-              handleSend={handleSend}
-            />
+            <div className="flex-1 flex flex-col relative">
+              {/* Debug/Status Indicator */}
+              <div className="absolute top-2 right-4 z-50 flex items-center gap-2 bg-white/80 px-2 py-1 rounded-full text-xs shadow-sm backdrop-blur-sm">
+                <div className={`w-2 h-2 rounded-full ${socketReady ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+                <span className="text-gray-600 font-medium">
+                  {socketReady ? 'Real-time Connected' : 'Connecting...'}
+                </span>
+              </div>
+
+              <ChatWindow
+                selectedUser={selectedUser}
+                messages={messages}
+                loading={loading}
+                currentUser={currentUser}
+                input={input}
+                setInput={setInput}
+                sending={sending}
+                handleSend={handleSend}
+                onTyping={handleTyping}
+                typingUsers={typingUsers}
+              />
+            </div>
           </div>
         </main>
       </div>

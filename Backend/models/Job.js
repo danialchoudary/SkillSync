@@ -10,6 +10,8 @@ const jobSchema = new mongoose.Schema({
   experience: { type: Number, default: 0 },
   recruiter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }, // New field
+  companyLogo: { type: String, default: '' }, // URL for the company logo
 });
 
 export default mongoose.model('Job', jobSchema);

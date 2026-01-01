@@ -1,6 +1,3 @@
-
-
-
 import express from 'express';
 import JobApplication from '../models/JobApplication.js';
 import Job from '../models/Job.js';
@@ -10,7 +7,7 @@ import path from 'path';
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-  cb(null, path.join(process.cwd(), 'Backend', 'uploads', 'resumes'));
+    cb(null, path.join(process.cwd(), 'Backend', 'uploads', 'resumes'));
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -32,7 +29,7 @@ router.get('/job/:jobId', authMiddleware, async (req, res) => {
     const jobId = req.params.jobId;
     // Find all applications for this job, populate jobSeeker info
     const applications = await JobApplication.find({ jobId })
-      .populate('jobSeekerId', 'name email resumeLink');
+      .populate('jobSeekerId', 'name email resumeLink profilePicture');
     console.log('[GET /applications/job/:jobId] found applications:', applications);
     res.json(applications);
   } catch (err) {
@@ -50,7 +47,7 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
     }
     const appId = req.params.id;
     const { status } = req.body;
-    if (!['pending', 'accepted', 'rejected'].includes(status)) {
+    if (!['applied', 'screening', 'interviewing', 'hired', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
     const application = await JobApplication.findById(appId);
@@ -118,7 +115,10 @@ router.get('/mine', authMiddleware, jobSeekerOnly, async (req, res) => {
   try {
     const jobSeekerId = req.user._id;
     const applications = await JobApplication.find({ jobSeekerId })
-      .populate('jobId');
+      .populate({
+        path: 'jobId',
+        select: 'title company companyLogo', // Include companyLogo in the populated fields
+      });
     res.json(applications);
   } catch (err) {
     console.error('Fetch applications error:', err);
