@@ -2,6 +2,7 @@
 Backend/node_modules/
 Backend/.env
 Backend/uploads/
+Backend/Backend/uploads/
 Backend/coverage/
 Backend/*.log
 
@@ -36,7 +37,7 @@ coverage/
 *.seed
 *.tgz
 
-# Ignore Copilot system files except documentation
+# GitHub Actions & System files
+!.github/workflows/
 !.github/copilot-instructions.md
-.github/
 
