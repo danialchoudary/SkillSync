@@ -19,3 +19,13 @@ export const getApplicantsByJob = async (jobId) => {
         throw error;
     }
 };
+
+export const getAIMatch = async (appId) => {
+    try {
+        const response = await api.get(`/applications/${appId}/ai-match`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting AI match:', error);
+        throw error;
+    }
+};

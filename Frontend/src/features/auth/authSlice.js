@@ -8,9 +8,34 @@ export const register = createAsyncThunk('auth/register', async (data, { rejectW
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
-    return res.data.user;
+    // Return user or message; for verification flow, we might not get a user immediately if we wait for verification code
+    // But duplicate email check happens here.
+    return res.data;
   } catch (err) {
     return rejectWithValue(err.response?.data?.error || 'Registration failed');
+  }
+});
+
+export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/verify-email', data);
+    // Store token in localStorage
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+    }
+    return res.data.user;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.error || 'Verification failed');
+  }
+
+});
+
+export const resendCode = createAsyncThunk('auth/resendCode', async (email, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/resend-verification-code', { email });
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.error || 'Failed to resend code');
   }
 });
 
@@ -57,12 +82,31 @@ const initialState = {
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {},
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: builder => {
     builder
       .addCase(register.pending, state => { state.loading = true; state.error = null; })
-      .addCase(register.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(register.fulfilled, (state, action) => {
+        state.loading = false;
+        // If registration returns a user directly (old flow), set it. 
+        // If it returns a message (verification flow), we might not set user yet, or set a partial state.
+        // For now, let's assume we handle the "verification needed" state in the component using the returned message/email.
+        if (action.payload.user) {
+          state.user = action.payload.user;
+        }
+      })
       .addCase(register.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+      .addCase(verifyEmail.pending, state => { state.loading = true; state.error = null; })
+      .addCase(verifyEmail.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+
+      .addCase(verifyEmail.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+      .addCase(resendCode.pending, state => { state.loading = true; state.error = null; })
+      .addCase(resendCode.fulfilled, state => { state.loading = false; })
+      .addCase(resendCode.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(login.pending, state => { state.loading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
       .addCase(login.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
@@ -72,4 +116,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { clearError } = authSlice.actions;
 export default authSlice.reducer;

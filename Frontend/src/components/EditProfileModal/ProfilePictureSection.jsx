@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { getImageUrl } from '../../utils/urlHelper';
 
 export default function ProfilePictureSection({ user, profilePicUploading, profilePicError, handleProfilePicUpload }) {
   return (
@@ -11,13 +12,7 @@ export default function ProfilePictureSection({ user, profilePicUploading, profi
     >
       <div className="relative group">
         <img
-          src={
-            user.profilePicture
-              ? (user.profilePicture.startsWith('http')
-                  ? user.profilePicture
-                  : `http://localhost:5000${user.profilePicture}`)
-              : '/default-avatar.png'
-          }
+          src={getImageUrl(user.profilePicture) || '/default-avatar.png'}
           alt="Profile"
           className="w-24 h-24 rounded-full object-cover ring-4 ring-blue-100 transition-all duration-300 group-hover:ring-blue-300 bg-gray-100"
           onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}

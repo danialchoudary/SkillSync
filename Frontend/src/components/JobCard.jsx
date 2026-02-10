@@ -4,6 +4,7 @@ import { applyForJob } from '../services/jobApi';
 import Toast from './Toast';
 import { FaBuilding, FaUser, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { getImageUrl } from '../utils/urlHelper';
 
 function StatusBadge({ status }) {
   const statusColors = {
@@ -11,7 +12,7 @@ function StatusBadge({ status }) {
     accepted: 'bg-green-100 text-green-800 border-green-300',
     rejected: 'bg-red-100 text-red-800 border-red-300'
   };
-  
+
   return (
     <span className={`px-3 py-1 rounded text-sm font-semibold border ${statusColors[status] || statusColors.pending}`}>
       {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending'}
@@ -51,7 +52,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
           {/* Company Logo */}
           {job.companyLogo ? (
             <img
-              src={`http://localhost:5000${job.companyLogo}`}
+              src={getImageUrl(job.companyLogo)}
               alt="company logo"
               className="w-10 h-10 rounded-full object-cover border"
               style={{ minWidth: 40, minHeight: 40 }}

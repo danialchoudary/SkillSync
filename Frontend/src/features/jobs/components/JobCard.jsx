@@ -5,6 +5,7 @@ import { applyForJob } from '../services/jobApi';
 import Toast from '../../../components/Toast';
 import { FaBuilding, FaUser, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark, FaClock, FaCheckCircle } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { getImageUrl } from '../../../utils/urlHelper';
 
 export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave, onUnsave, user }) {
   const [showModal, setShowModal] = useState(false);
@@ -54,9 +55,9 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
             className="z-10"
           >
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-white text-xs font-bold rounded-full shadow-lg ${job.status === 'accepted' ? 'bg-green-500 shadow-green-500/30' :
-                job.status === 'rejected' ? 'bg-red-500 shadow-red-500/30' :
-                  job.status === 'pending' ? 'bg-yellow-500 shadow-yellow-500/30' :
-                    'bg-gray-500 shadow-gray-500/30' // Default styling for unknown status
+              job.status === 'rejected' ? 'bg-red-500 shadow-red-500/30' :
+                job.status === 'pending' ? 'bg-yellow-500 shadow-yellow-500/30' :
+                  'bg-gray-500 shadow-gray-500/30' // Default styling for unknown status
               }`}>
               {job.status === 'accepted' && <FaCheckCircle />} {/* Accepted Icon */}
               {job.status === 'rejected' && <FaRegBookmark />} {/* Rejected Icon */}
@@ -82,7 +83,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full blur-md"></div>
                   <img
-                    src={`http://localhost:5000${job.companyLogo}`}
+                    src={getImageUrl(job.companyLogo)}
                     alt="company logo"
                     className="relative w-14 h-14 rounded-full object-cover border-2 border-white shadow-lg"
                   />

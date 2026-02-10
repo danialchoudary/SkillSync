@@ -93,24 +93,28 @@ export default function Messages() {
     setLoading(false);
   };
 
-  const handleSend = async (e) => {
+  const handleSend = async (e, options = {}) => {
     e.preventDefault();
-    // Prevent sending if input is empty, only whitespace, already sending, or no user selected
-    if (!input || !input.trim() || !selectedUser || !currentUser || sending) return;
+    // Allow sending if there's content OR it's a file message
+    if ((!input || !input.trim()) && options.messageType !== 'file') return;
+    if (!selectedUser || !currentUser || sending) return;
+
     setSending(true);
     try {
       const socketInstance = getSocket();
+      const content = input.trim();
 
       // Optimistic UI Update: Show message immediately
       const tempMessage = {
         _id: Date.now().toString(), // Temporary ID
         senderId: currentUser._id,
         receiverId: selectedUser._id,
-        content: input.trim(),
+        content: content,
         seen: false,
         createdAt: new Date().toISOString(),
-        sender: currentUser, // Needed for ChatWindow to render right side
-        receiver: selectedUser
+        sender: currentUser,
+        receiver: selectedUser,
+        ...options // Include file details if any
       };
 
       setMessages(prev => [...prev, tempMessage]);
@@ -118,10 +122,13 @@ export default function Messages() {
 
       if (socketInstance && socketInstance.connected) {
         // Send via Socket.IO
-        emitEvent('send_message', { receiverId: selectedUser._id, content: input.trim() }, (response) => {
+        emitEvent('send_message', {
+          receiverId: selectedUser._id,
+          content: content,
+          ...options
+        }, (response) => {
           if (response?.error) {
             console.error('Socket send_message error:', response.error);
-            // Rollback optimistic update on error (optional, or show error state)
             setMessages(prev => prev.filter(m => m._id !== tempMessage._id));
             alert('Failed to send message. Please try again.');
           }
@@ -129,9 +136,8 @@ export default function Messages() {
       } else {
         // Fallback to REST API
         console.warn('[Messages] Socket not connected, using REST fallback');
-        const res = await sendMessage(selectedUser._id, input);
-        setMessages([...messages, res.data]);
-        setInput('');
+        const res = await sendMessage(selectedUser._id, content, options);
+        setMessages(prev => prev.map(m => m._id === tempMessage._id ? res : m));
       }
     } catch (error) {
       console.error('Error sending message:', error);

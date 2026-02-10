@@ -2,18 +2,17 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadDir = path.join(process.cwd(), 'Backend', 'uploads', 'resumes');
+const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
   }
 });
 
@@ -36,9 +35,9 @@ export function resumeUploadMiddleware(req, res, next) {
       if (err.message === 'Only PDF files are allowed' || err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ error: err.message || 'File too large' });
       }
-      // Use shared error handler if present
       return next(err);
     }
     next();
   });
 }
+

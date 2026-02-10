@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser, logoutUser } from '../controllers/authController.js';
+import { registerUser, loginUser, logoutUser, verifyEmail, resendVerificationCode } from '../controllers/authController.js';
 import { getCurrentUser } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -9,12 +9,16 @@ router.get('/me', authMiddleware, getCurrentUser);
 // Register
 router.post('/register', registerUser);
 
+// Verify Email
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification-code', resendVerificationCode);
+
 // Login
 router.post('/login', loginUser);
 
 // Logout
 router.post('/logout', logoutUser);
-    
-	// ...existing code...
+
+// ...existing code...
 
 export default router;

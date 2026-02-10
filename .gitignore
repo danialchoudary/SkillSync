@@ -36,6 +36,16 @@ coverage/
 *.pid
 *.seed
 *.tgz
+.agent/
+.agents/
+Backend/.env.backup
+Backend/.env.example
+Frontend/.env.example
+*.md
+!README.md
+!walkthrough.md
+!implementation_plan.md
+!task.md
 
 # GitHub Actions & System files
 !.github/workflows/

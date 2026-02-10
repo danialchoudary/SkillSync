@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AuthForm from "../components/AuthForm";
-import { login } from "../features/auth/authSlice";
+import { login, clearError } from "../features/auth/authSlice";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -10,6 +10,10 @@ export default function Login() {
   const { user, loading, error } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [localError, setLocalError] = React.useState(null);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   useEffect(() => {
     setLocalError(error);
@@ -26,7 +30,7 @@ export default function Login() {
   }, [user, navigate]);
 
   return (
-  <div className="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 px-2 py-12 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 px-2 relative py-8">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-30"></div>
 
@@ -63,9 +67,9 @@ export default function Login() {
         className="w-full max-w-[440px] relative z-10"
       >
         {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[95vh] w-full">
           {/* Header Section */}
-          <div className="px-8 pt-10 pb-6 border-b border-gray-100 bg-gradient-to-b from-white to-gray-50">
+          <div className="px-6 pt-5 pb-3 border-b border-gray-100 bg-gradient-to-b from-white to-gray-50 flex-shrink-0">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -73,9 +77,9 @@ export default function Login() {
               className="flex flex-col items-center"
             >
               {/* Logo/Icon */}
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center mb-2 shadow-lg shadow-blue-500/30">
                 <svg
-                  className="w-7 h-7 text-white"
+                  className="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -90,10 +94,10 @@ export default function Login() {
               </div>
 
               {/* Title */}
-              <h1 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
-                Sign in to your account
+              <h1 className="text-lg font-bold text-gray-900 mb-0.5 tracking-tight">
+                Sign in
               </h1>
-              <p className="text-sm text-gray-600 text-center">
+              <p className="text-[11px] text-gray-500 text-center">
                 Welcome back! Please enter your details
               </p>
             </motion.div>
@@ -104,7 +108,7 @@ export default function Login() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="px-8 py-8"
+            className="px-8 py-5"
           >
             <AuthForm
               type="login"
@@ -120,13 +124,13 @@ export default function Login() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="px-8 py-6 bg-gray-50 border-t border-gray-100"
+            className="px-8 py-3.5 bg-gray-50 border-t border-gray-100 flex-shrink-0"
           >
-            <div className="flex items-center justify-center gap-1 text-sm">
-              <span className="text-gray-600">New to our platform?</span>
+            <div className="flex items-center justify-center gap-1 text-xs">
+              <span className="text-gray-500">New here?</span>
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 hover:underline decoration-2 underline-offset-2"
+                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 hover:underline"
               >
                 Create an account
               </Link>

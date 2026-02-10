@@ -6,15 +6,29 @@ export const fetchConversation = async (userId) => {
 	console.log('Fetching conversation for userId:', userId);
 	return api.get(`/api/messages/conversation/${userId}`);
 };
-export const sendMessage = async (receiverId, content) => {
+export const sendMessage = async (receiverId, content, options = {}) => {
 	// Debug log to verify sendMessage API call
-	console.log('Sending message to:', receiverId, 'with content:', content);
+	console.log('Sending message to:', receiverId, 'with content:', content, 'options:', options);
 	try {
-		const res = await api.post('/api/messages/send', { receiverId, content });
+		const res = await api.post('/api/messages/send', {
+			receiverId,
+			content,
+			...options
+		});
 		return res.data;
 	} catch (err) {
 		console.error('Send message error:', err);
 		throw err;
 	}
 };
+
+export const uploadMessageFile = async (file) => {
+	const formData = new FormData();
+	formData.append('file', file);
+	const res = await api.post('/api/messages/upload', formData, {
+		headers: { 'Content-Type': 'multipart/form-data' }
+	});
+	return res.data;
+};
+
 export const markMessageSeen = async (id) => api.put(`/api/messages/${id}/seen`);

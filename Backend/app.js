@@ -25,8 +25,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve static files (if any other than uploads are needed, unrelated to cloud storage)
-app.use('/uploads', express.static(path.join(process.cwd(), 'Backend', 'uploads')));
+// Serve static files (resumes, etc.) from the uploads folder
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/auth', authRoutes);
 app.use('/me', meRoutes);

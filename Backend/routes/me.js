@@ -179,8 +179,6 @@ router.patch('/', userUpdateLimiter, authMiddleware, validateUserUpdate, async (
   }
 });
 
-export default router;
-
 // POST /me/resume - upload resume
 router.post('/resume', userUpdateLimiter, authMiddleware, resumeUploadMiddleware, async (req, res) => {
   if (!req.user || !req.user.id) {
@@ -192,14 +190,17 @@ router.post('/resume', userUpdateLimiter, authMiddleware, resumeUploadMiddleware
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User find error' });
     }
-    // Set new resume URL
-    const publicUrl = `/uploads/resumes/${req.file.filename}`;
-    user.resumeLink = publicUrl;
+    // Set new resume URL (Local path relative to /uploads)
+    const relativePath = `/uploads/resumes/${req.file.filename}`;
+    user.resumeLink = relativePath;
+    user.resumeUrl = relativePath; // Added for consistency with other parts of the app
     await user.save();
-    res.json({ resumeUrl: publicUrl });
+    res.json({ resumeUrl: relativePath });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+export default router;

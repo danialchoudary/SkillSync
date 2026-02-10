@@ -26,20 +26,23 @@ cloudinary.config({
     api_secret,
 });
 
-const createCloudinaryStorage = (folderName, allowedFormats = ['jpg', 'png', 'jpeg']) => {
-    const params = {
-        folder: folderName,
-        public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
-        resource_type: allowedFormats ? 'auto' : 'raw', // 'raw' typically avoids transformation-based 401s for documents
-    };
-
-    if (allowedFormats) {
-        params.allowed_formats = allowedFormats;
-    }
-
+const createCloudinaryStorage = (folderName) => {
     return new CloudinaryStorage({
         cloudinary: cloudinary,
-        params: params,
+        params: async (req, file) => {
+            const timestamp = Date.now();
+            const cleanName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_');
+
+            const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+
+            return {
+                folder: folderName,
+                public_id: `${timestamp}-${cleanName}`,
+                resource_type: 'auto',
+                format: isPdf ? 'pdf' : undefined,
+                access_mode: 'public'
+            };
+        },
     });
 };
 

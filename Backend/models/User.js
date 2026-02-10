@@ -33,15 +33,19 @@ const userSchema = new mongoose.Schema({
    * Company description (for recruiter profile)
    */
   description: { type: String },
+  // Email Verification
+  isVerified: { type: Boolean, default: false },
+  verificationCode: { type: String },
+  verificationCodeExpires: { type: Date },
 });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-userSchema.methods.comparePassword = function(candidatePassword) {
+userSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 

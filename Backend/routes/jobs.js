@@ -84,7 +84,9 @@ router.get('/saved', authMiddleware, async (req, res) => {
     if (req.user) {
       const userApplications = await JobApplication.find({ jobSeekerId: req.user._id });
       userApplications.forEach(app => {
-        userStatusMap[app.jobId.toString()] = app.status;
+        if (app.jobId) {
+          userStatusMap[app.jobId.toString()] = app.status;
+        }
       });
     }
 
@@ -141,7 +143,9 @@ router.get('/', async (req, res) => {
     if (userId) {
       const userApplications = await JobApplication.find({ jobSeekerId: userId });
       userApplications.forEach(app => {
-        userStatusMap[app.jobId.toString()] = app.status;
+        if (app.jobId) {
+          userStatusMap[app.jobId.toString()] = app.status;
+        }
       });
     }
 

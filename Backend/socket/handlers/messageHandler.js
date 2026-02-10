@@ -29,10 +29,10 @@ export function registerMessageHandlers(socket, io) {
      */
     socket.on('send_message', async (payload, callback) => {
         try {
-            const { receiverId, content } = payload;
+            const { receiverId, content, messageType, fileUrl, fileName, fileType, fileSize } = payload;
             const senderId = socket.user._id.toString();
 
-            if (!receiverId || !content) {
+            if (!receiverId || (!content && messageType !== 'file')) {
                 return callback?.({ error: 'Missing receiverId or content' });
             }
 
@@ -40,7 +40,12 @@ export function registerMessageHandlers(socket, io) {
             const message = new Message({
                 senderId: senderId,
                 receiverId: receiverId,
-                content: content.trim(),
+                content: (content || '').trim(),
+                messageType: messageType || 'text',
+                fileUrl,
+                fileName,
+                fileType,
+                fileSize
             });
             await message.save();
 

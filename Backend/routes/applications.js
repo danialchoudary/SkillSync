@@ -2,19 +2,28 @@ import express from 'express';
 import JobApplication from '../models/JobApplication.js';
 import Job from '../models/Job.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { analyzeMatch } from '../services/aiService.js';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+
+const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(process.cwd(), 'Backend', 'uploads', 'resumes'));
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
 
 const router = express.Router();
 
@@ -123,6 +132,43 @@ router.get('/mine', authMiddleware, jobSeekerOnly, async (req, res) => {
   } catch (err) {
     console.error('Fetch applications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications. Please try again.' });
+  }
+});
+
+// GET /:id/ai-match - Analyze candidate match using AI
+router.get('/:id/ai-match', authMiddleware, async (req, res) => {
+  try {
+    const application = await JobApplication.findById(req.params.id)
+      .populate('jobId')
+      .populate('jobSeekerId');
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Only recruiter who posted the job can access
+    if (application.jobId.recruiter.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const matchResult = await analyzeMatch(
+      {
+        title: application.jobId.title,
+        description: application.jobId.description,
+        skills: application.jobId.skills
+      },
+      {
+        name: application.jobSeekerId.name,
+        skills: application.jobSeekerId.skills,
+        experience: application.jobSeekerId.experience,
+        coverLetter: application.coverLetter
+      }
+    );
+
+    res.json(matchResult);
+  } catch (err) {
+    console.error('AI Match error:', err);
+    res.status(500).json({ error: 'Failed to analyze match' });
   }
 });
 

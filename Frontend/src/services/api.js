@@ -32,4 +32,14 @@ export function uploadResume(file) {
   });
 }
 
+export function updateCompanyLogo(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/me/company-logo', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
 export default api;

@@ -7,6 +7,7 @@ import Topbar from './Topbar';
 import Footer from './Footer';
 import { motion } from 'framer-motion';
 import RecruiterSidebar from './RecruiterSidebar';
+import { getImageUrl, getResumeUrl } from '../utils/urlHelper';
 
 export default function Profile() {
 	const [user, setUser] = useState(null);
@@ -134,9 +135,9 @@ export default function Profile() {
 											className="relative"
 										>
 											<div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-500/30 rounded-full blur-xl"></div>
-											{user.profilePicture ? (
+											{getImageUrl(user.profilePicture) ? (
 												<img
-													src={user.profilePicture.startsWith('http') ? user.profilePicture : `http://localhost:5000${user.profilePicture}`}
+													src={getImageUrl(user.profilePicture)}
 													alt="avatar"
 													className="relative w-32 h-32 rounded-full object-cover border-4 border-white shadow-2xl ring-2 ring-gray-100"
 												/>
@@ -193,10 +194,10 @@ export default function Profile() {
 												</div>
 												<h3 className="text-lg font-bold text-gray-900">Resume / CV</h3>
 											</div>
-											{user.resumeUrl ? (
+											{getResumeUrl(user.resumeUrl || user.resumeLink) ? (
 												<motion.a
 													whileHover={{ scale: 1.02, x: 2 }}
-													href={user.resumeUrl.startsWith('http') ? user.resumeUrl : `http://localhost:5000${user.resumeUrl}`}
+													href={getResumeUrl(user.resumeUrl || user.resumeLink)}
 													target="_blank"
 													rel="noopener noreferrer"
 													className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-700 rounded-xl hover:bg-blue-100 border border-blue-200 font-medium text-sm transition-all duration-300 group shadow-sm"

@@ -28,7 +28,8 @@ const RecruiterDashboard = () => {
         setRecentApplicants(applicantsData);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again.');
+        const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load dashboard data. Please try again.';
+        setError(`${errorMessage} (Status: ${err.response?.status})`);
       } finally {
         setLoading(false);
       }
@@ -57,8 +58,8 @@ const RecruiterDashboard = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Something went wrong</h3>
-          <p className="text-gray-500 mb-6">{error}</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Error Loading Dashboard</h3>
+          <p className="text-gray-500 mb-6 text-sm font-mono break-all">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition duration-200 shadow-lg shadow-blue-500/20"

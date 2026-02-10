@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
-html, body {
+html,
+body {
   min-height: 100%;
-  overflow-y: auto;
 }
 
 .input {
   @apply w-full p-2 mb-2 border rounded;
 }
+
 .btn {
   @apply bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700;
 }

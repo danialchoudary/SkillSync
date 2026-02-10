@@ -10,6 +10,7 @@ import ProfileCompletionCard from '../components/ProfileCompletionCard';
 import Footer from '../components/Footer';
 import { getMe } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getImageUrl } from '../utils/urlHelper';
 
 export default function Dashboard() {
   const unreadCount = useSelector(state => state.unread.count);
@@ -167,7 +168,7 @@ export default function Dashboard() {
                           {user.role === 'recruiter' ? (
                             user.companyLogo ? (
                               <img
-                                src={user.companyLogo.startsWith('http') ? user.companyLogo : `http://localhost:5000${user.companyLogo}`}
+                                src={getImageUrl(user.companyLogo)}
                                 alt="company logo"
                                 className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
                               />
@@ -179,7 +180,7 @@ export default function Dashboard() {
                           ) : (
                             user.profilePicture ? (
                               <img
-                                src={user.profilePicture.startsWith('http') ? user.profilePicture : `http://localhost:5000${user.profilePicture}`}
+                                src={getImageUrl(user.profilePicture)}
                                 alt="avatar"
                                 className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
                               />

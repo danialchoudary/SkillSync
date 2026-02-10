@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { getResumeUrl } from '../../utils/urlHelper';
 
 export default function ResumeSection({ user, resumeUploading, resumeError, handleResumeUpload }) {
   return (
@@ -23,7 +24,7 @@ export default function ResumeSection({ user, resumeUploading, resumeError, hand
               </div>
               <div>
                 <a
-                  href={`http://localhost:5000${user.resumeUrl}`}
+                  href={getResumeUrl(user.resumeUrl || user.resumeLink)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm hover:underline transition-colors duration-200"

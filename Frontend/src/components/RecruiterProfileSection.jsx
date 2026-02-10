@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { FaBuilding, FaGlobe, FaMapMarkerAlt, FaPen, FaCamera, FaEnvelope, FaIndustry } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getMe } from '../services/api';
+import { getMe, updateMe, updateCompanyLogo } from '../services/api';
+import { getImageUrl } from '../utils/urlHelper';
 
 const INDUSTRIES = [
 	'IT', 'Healthcare', 'Finance', 'Education', 'Retail', 'Manufacturing', 'Construction', 'Hospitality', 'Other'
@@ -59,14 +60,8 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 		setLogoUploading(true);
 		setLogoError('');
 		try {
-			const formData = new FormData();
-			formData.append('file', file);
-			const res = await fetch('http://localhost:5000/me/company-logo', {
-				method: 'POST',
-				body: formData,
-				credentials: 'include',
-			});
-			const data = await res.json();
+			const res = await updateCompanyLogo(file);
+			const data = res.data;
 			setUser(u => ({ ...u, companyLogo: data.companyLogoUrl }));
 			setEditForm(f => ({ ...f, companyLogo: data.companyLogoUrl }));
 			fetchUser(); // Refresh to ensure sync
@@ -85,12 +80,7 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 		e.preventDefault();
 		setSaving(true);
 		try {
-			await fetch('http://localhost:5000/me', {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify(editForm),
-			});
+			await updateMe(editForm);
 			setEditOpen(false);
 			fetchUser();
 			setToast('Profile updated successfully');
@@ -156,7 +146,7 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 								>
 									<div className="w-full h-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100">
 										{user.companyLogo ? (
-											<img src={`http://localhost:5000${user.companyLogo}`} alt="logo" className="w-full h-full object-cover" />
+											<img src={getImageUrl(user.companyLogo)} alt="logo" className="w-full h-full object-cover" />
 										) : (
 											<FaBuilding className="text-gray-300 text-4xl" />
 										)}
@@ -304,7 +294,7 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 										<div className="relative">
 											<div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300">
 												{editForm.companyLogo ? (
-													<img src={`http://localhost:5000${editForm.companyLogo}`} alt="preview" className="w-full h-full object-cover" />
+													<img src={getImageUrl(editForm.companyLogo)} alt="preview" className="w-full h-full object-cover" />
 												) : (
 													<FaBuilding className="text-gray-400 text-2xl" />
 												)}

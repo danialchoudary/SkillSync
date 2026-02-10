@@ -11,9 +11,14 @@ import {
     Filter,
     ChevronRight,
     MoreVertical,
-    ArrowRight
+    ArrowRight,
+    Sparkles,
+    Loader2,
+    AlertCircle,
+    X
 } from 'lucide-react';
 import { getImageUrl, getResumeUrl } from '../utils/urlHelper';
+import { getAIMatch } from '../services/applicationApi';
 
 const COLUMNS = [
     { id: 'applied', title: 'Applied', color: 'bg-blue-500', icon: Clock },
@@ -25,6 +30,29 @@ const COLUMNS = [
 
 const ApplicantCard = ({ applicant, onStatusChange }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [aiMatch, setAiMatch] = useState(null);
+    const [loadingAI, setLoadingAI] = useState(false);
+    const [errorAI, setErrorAI] = useState(null);
+
+    const handleAIMatch = async () => {
+        setLoadingAI(true);
+        setErrorAI(null);
+        try {
+            const result = await getAIMatch(applicant._id);
+            setAiMatch(result);
+        } catch (err) {
+            console.error('Failed to get AI match:', err);
+            setErrorAI('Failed to analyze');
+        } finally {
+            setLoadingAI(false);
+        }
+    };
+
+    const getScoreColor = (score) => {
+        if (score >= 80) return 'text-green-600 bg-green-50 border-green-100';
+        if (score >= 50) return 'text-orange-600 bg-orange-50 border-orange-100';
+        return 'text-red-600 bg-red-50 border-red-100';
+    };
 
     return (
         <motion.div
@@ -115,16 +143,73 @@ const ApplicantCard = ({ applicant, onStatusChange }) => {
                 )}
             </div>
 
-            <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
-                <div className="flex -space-x-1">
-                    {/* Tags or skills placeholder */}
-                    <span className="px-2 py-0.5 rounded-full bg-gray-50 text-[10px] font-bold text-gray-400">
-                        {applicant.jobId?.title || 'Job'}
-                    </span>
+            <div className="mt-3 pt-3 border-t border-gray-50">
+                <div className="flex items-center justify-between">
+                    <div className="flex -space-x-1">
+                        <span className="px-2 py-0.5 rounded-full bg-gray-50 text-[10px] font-bold text-gray-400">
+                            {applicant.jobId?.title || 'Job'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {aiMatch ? (
+                            <div className="flex items-center gap-1">
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-extrabold tracking-tight ${getScoreColor(aiMatch.score)}`}
+                                >
+                                    <Sparkles size={10} className="shrink-0" />
+                                    {aiMatch.score}% Match
+                                </motion.div>
+                                <button
+                                    onClick={() => setAiMatch(null)}
+                                    className="p-1 hover:bg-gray-100 rounded-md text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Clear AI analysis"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ) : loadingAI ? (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-blue-500">
+                                <Loader2 size={12} className="animate-spin" />
+                                Matching...
+                            </div>
+                        ) : errorAI ? (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-red-500" title={errorAI}>
+                                <AlertCircle size={12} />
+                                Error
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleAIMatch}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-all text-[10px] font-extrabold tracking-tight group/ai"
+                            >
+                                <Sparkles size={10} className="group-hover/ai:scale-125 transition-transform" />
+                                AI Match
+                            </button>
+                        )}
+                        <button className="text-gray-300 hover:text-blue-600 transition-colors">
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
                 </div>
-                <button className="text-gray-300 hover:text-blue-600 transition-colors">
-                    <ChevronRight size={16} />
-                </button>
+
+                {/* AI Analysis Dropdown */}
+                <AnimatePresence>
+                    {aiMatch && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="mt-2 p-2 bg-gray-50 rounded-lg text-[10px] text-gray-600 font-medium border border-gray-100 leading-relaxed italic">
+                                "{aiMatch.analysis}"
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </motion.div>
     );
