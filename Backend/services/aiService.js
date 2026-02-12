@@ -1,35 +1,98 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from 'dotenv';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
+import fetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
+ * Extracts text content from a PDF URL.
+ * @param {string} pdfUrl - URL of the PDF file.
+ * @returns {Promise<string>} - Extracted text.
+ */
+const extractTextFromPdf = async (pdfUrl) => {
+    if (!pdfUrl) return "";
+    try {
+        let buffer;
+        if (pdfUrl.startsWith('http')) {
+            console.log(`[AI Service] Fetching remote PDF from: ${pdfUrl}`);
+            const response = await fetch(pdfUrl);
+
+            if (!response.ok) {
+                console.error(`[AI Service] Failed to fetch PDF. Status: ${response.status} ${response.statusText}`);
+                if (response.status === 401 && pdfUrl.includes('cloudinary')) {
+                    console.warn('[AI Service] Possible Cloudinary security restriction. Ensure asset is public or re-upload as "raw" resource.');
+                }
+                return "";
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+        } else {
+            console.log(`[AI Service] Reading local PDF from: ${pdfUrl}`);
+            // Normalize path: remove leading slash if present and use process.cwd()
+            const relativePath = pdfUrl.startsWith('/') ? pdfUrl.substring(1) : pdfUrl;
+            // Also handle Windows backslashes if any
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            const absolutePath = path.resolve(process.cwd(), normalizedPath);
+
+            console.log(`[AI Service] Normalized absolute path: ${absolutePath}`);
+            buffer = await fs.readFile(absolutePath);
+        }
+
+        console.log(`[AI Service] PDF loaded. Buffer size: ${buffer.length} bytes`);
+
+        if (buffer.length === 0) {
+            console.error('[AI Service] PDF buffer is empty.');
+            return "";
+        }
+
+        const instance = new pdf.PDFParse({ data: buffer });
+        const data = await instance.getText();
+        return data.text;
+    } catch (error) {
+        console.error('[AI Service] PDF extraction error:', error);
+        return "";
+    }
+};
+
+/**
  * Analyzes the match between a job and a candidate using Gemini AI.
  * @param {Object} job - Job data (title, description, skills)
- * @param {Object} candidate - Candidate data (name, skills, experience, coverLetter)
+ * @param {Object} candidate - Candidate data (name, skills, experience, coverLetter, resumeUrl)
  * @returns {Promise<Object>} - Match score and analysis
  */
 export const analyzeMatch = async (job, candidate) => {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
+        // Extract text from resume if available
+        const resumeText = candidate.resumeUrl ? await extractTextFromPdf(candidate.resumeUrl) : "";
+
         const prompt = `
         You are an expert recruiter. Analyze the match between the following job and candidate.
         
-        Job Title: ${job.title}
-        Job Description: ${job.description}
+        ### Job Details
+        Title: ${job.title}
+        Description: ${job.description}
         Required Skills: ${job.skills.join(', ')}
         
-        Candidate Name: ${candidate.name}
-        Candidate Skills: ${candidate.skills?.join(', ') || 'Not specified'}
-        Candidate Experience: ${candidate.experience || 'Not specified'}
-        Candidate Cover Letter: ${candidate.coverLetter || 'None'}
+        ### Candidate Details
+        Name: ${candidate.name}
+        Profile Skills: ${candidate.skills?.join(', ') || 'Not specified'}
+        Profile Experience: ${candidate.experience || 'Not specified'}
+        Cover Letter: ${candidate.coverLetter || 'None'}
+        ${resumeText ? `### Resume Content\n${resumeText.substring(0, 10000)}` : '### Resume Content\nNot provided'}
 
         Provide a response in strict JSON format with exactly two keys:
         1. "score": An integer between 0 and 100 representing the match percentage.
-        2. "analysis": A concise 2-3 sentence summary explaining the score based on skills, experience, and fit.
+        2. "analysis": A concise 2-3 sentence summary explaining the score based on skills, experience, and fit. Be specific if you found details in the resume.
 
         JSON Response:
         `;
@@ -37,7 +100,6 @@ export const analyzeMatch = async (job, candidate) => {
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        // Clean the response text in case Gemini adds markdown code blocks
         const cleanJson = responseText.replace(/```json|```/g, '').trim();
         return JSON.parse(cleanJson);
     } catch (error) {

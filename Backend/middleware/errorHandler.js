@@ -27,15 +27,15 @@ export const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     message = 'Invalid data format';
     details = 'The provided data is not in the correct format.';
-  } else if (err.name === 'MongoError' || err.name === 'MongoServerError') {
-    statusCode = 500;
-    message = 'Database error';
-    details = 'A database error occurred. Please try again later.';
   } else if (err.code === 11000) {
     // MongoDB duplicate key error
     statusCode = 409;
     message = 'Duplicate entry';
     details = 'This data already exists.';
+  } else if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+    statusCode = 500;
+    message = 'Database error';
+    details = 'A database error occurred. Please try again later.';
   } else if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Invalid authentication token';

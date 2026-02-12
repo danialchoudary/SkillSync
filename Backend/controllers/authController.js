@@ -226,7 +226,7 @@ export const loginUser = async (req, res) => {
     }
 
     const { email, password, rememberMe } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
     if (!user) {
       console.error('Login failed: user not found for email', email);
       return res.status(400).json({ error: 'Invalid credentials' });
@@ -236,6 +236,17 @@ export const loginUser = async (req, res) => {
       console.error('Login failed: password mismatch for email', email);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
+
+    // Check if user is verified
+    if (user.isVerified === false) {
+      console.error('Login failed: email not verified for', email);
+      return res.status(401).json({
+        error: 'Email not verified. Please check your inbox for the code.',
+        needsVerification: true,
+        email: user.email
+      });
+    }
+
 
     // Token expiration: 30 days if rememberMe is true, else 1 day
     const expiresIn = rememberMe ? '30d' : '1d';

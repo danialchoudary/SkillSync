@@ -4,12 +4,14 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import meRoutes from './routes/me.js';
 import usersRoutes from './routes/users.js';
+import healthRoutes from './routes/health.js';
+import dashboardRoutes from './routes/dashboard.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
-import fs from 'fs';
 import path from 'path';
 import jobsRouter from './routes/jobs.js';
 import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const allowedOrigins = [
   "http://localhost:5173", // for local dev
@@ -29,8 +31,10 @@ app.use(cookieParser());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/auth', authRoutes);
+app.use('/health', healthRoutes);
 app.use('/me', meRoutes);
 app.use('/users', usersRoutes);
+app.use('/dashboard', dashboardRoutes);
 app.use('/jobs', jobsRouter);
 app.use('/applications', applicationsRouter);
 app.use('/api/messages', messagesRouter);
@@ -43,11 +47,8 @@ app.get('/api/hello', authMiddleware, (req, res) => {
   res.json({ userId: req.user.id });
 });
 
-// Centralized error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
 

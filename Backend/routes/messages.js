@@ -5,21 +5,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadDir = path.join(process.cwd(), 'uploads', 'messages');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+import { createCloudinaryStorage } from '../utils/cloudinary.js';
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
 const upload = multer({
-  storage,
+  storage: createCloudinaryStorage('skillsync/messages'),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
@@ -55,7 +44,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    const fileUrl = `/uploads/messages/${req.file.filename}`;
+    const fileUrl = req.file.path;
     res.json({
       fileUrl,
       fileName: req.file.originalname,

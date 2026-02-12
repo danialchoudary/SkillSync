@@ -23,7 +23,7 @@ export default function JobForm({ onPost }) {
   const handleSubmit = e => {
     e.preventDefault();
     setIsLoading(true);
-
+    
     if (onPost) {
       Promise.resolve(onPost(form))
         .then(() => {
@@ -66,7 +66,7 @@ export default function JobForm({ onPost }) {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-6 px-4">
+    <div className="min-h-screen h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center px-4 py-12 overflow-y-auto">
       {/* Toast Notification */}
       {toast && (
         <motion.div
@@ -76,10 +76,11 @@ export default function JobForm({ onPost }) {
           variants={toastVariants}
           className="fixed top-6 right-6 z-50 max-w-sm"
         >
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-lg backdrop-blur-md border ${toastType === 'success'
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-lg backdrop-blur-md border ${
+            toastType === 'success'
               ? 'bg-green-50/80 border-green-200 text-green-900'
               : 'bg-red-50/80 border-red-200 text-red-900'
-            }`}>
+          }`}>
             {toastType === 'success' ? (
               <CheckCircle className="w-5 h-5 flex-shrink-0" />
             ) : (

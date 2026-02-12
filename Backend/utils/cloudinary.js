@@ -38,8 +38,7 @@ const createCloudinaryStorage = (folderName) => {
             return {
                 folder: folderName,
                 public_id: `${timestamp}-${cleanName}`,
-                resource_type: 'auto',
-                format: isPdf ? 'pdf' : undefined,
+                resource_type: isPdf ? 'raw' : 'auto',
                 access_mode: 'public'
             };
         },

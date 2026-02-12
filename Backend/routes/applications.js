@@ -7,21 +7,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+import { createCloudinaryStorage } from '../utils/cloudinary.js';
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
 const upload = multer({
-  storage,
+  storage: createCloudinaryStorage('skillsync/resumes'),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
@@ -88,7 +77,7 @@ router.post('/apply', authMiddleware, jobSeekerOnly, upload.single('resume'), as
     const jobSeekerId = req.user._id;
     let resumeUrl = req.user.resumeLink || '';
     if (req.file) {
-      resumeUrl = `/uploads/resumes/${req.file.filename}`;
+      resumeUrl = req.file.path;
     }
 
     // Validate required fields
@@ -161,7 +150,8 @@ router.get('/:id/ai-match', authMiddleware, async (req, res) => {
         name: application.jobSeekerId.name,
         skills: application.jobSeekerId.skills,
         experience: application.jobSeekerId.experience,
-        coverLetter: application.coverLetter
+        coverLetter: application.coverLetter,
+        resumeUrl: application.resumeUrl
       }
     );
 

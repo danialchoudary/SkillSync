@@ -192,12 +192,12 @@ router.post('/resume', userUpdateLimiter, authMiddleware, resumeUploadMiddleware
     if (!user) {
       return res.status(404).json({ error: 'User find error' });
     }
-    // Set new resume URL (Local path relative to /uploads)
-    const relativePath = `/uploads/resumes/${req.file.filename}`;
-    user.resumeLink = relativePath;
-    user.resumeUrl = relativePath; // Added for consistency with other parts of the app
+    // Set new resume URL (Cloudinary path)
+    const publicUrl = req.file.path;
+    user.resumeLink = publicUrl;
+    user.resumeUrl = publicUrl;
     await user.save();
-    res.json({ resumeUrl: relativePath });
+    res.json({ resumeUrl: publicUrl });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

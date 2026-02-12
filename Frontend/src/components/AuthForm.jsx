@@ -103,17 +103,18 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         setRegisteredEmail(form.email);
         setStep(2); // Move to verification step
       }
-
     } else {
       data = {
         email: form.email,
         password: form.password,
         rememberMe: form.rememberMe,
       };
-      if (typeof onSubmit === 'function') {
-        onSubmit(data);
-      } else {
-        await dispatch(login(data));
+
+      const resultAction = await dispatch(login(data));
+      // Check if user is unverified
+      if (login.rejected.match(resultAction) && resultAction.payload?.needsVerification) {
+        setRegisteredEmail(form.email);
+        setStep(2);
       }
     }
   };
@@ -123,7 +124,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     // Optional: show a toast or message that code was sent
   };
 
-  if (step === 2 && type === 'register') {
+  if (step === 2) {
     return (
       <div className="text-center">
         <h2 className="text-xl font-bold mb-2">Email Verification</h2>

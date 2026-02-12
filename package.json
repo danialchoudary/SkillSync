@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "test": "npm --prefix Backend test && npm --prefix Frontend test",
+    "test:backend": "npm --prefix Backend test",
+    "test:frontend": "npm --prefix Frontend test"
+  },
   "dependencies": {
     "express-session": "^1.18.2",
     "passport": "^0.7.0",
