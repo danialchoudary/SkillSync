@@ -31,7 +31,7 @@ export default function Register() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 px-2 relative py-8">
+    <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 px-2 relative">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-30"></div>
 
@@ -68,7 +68,7 @@ export default function Register() {
         className="w-full max-w-[540px] relative z-10"
       >
         {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[95vh]">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[calc(100vh-0.75rem)]">
           {/* Header Section */}
           <div className="px-6 pt-5 pb-3 border-b border-gray-100 bg-gradient-to-b from-white to-gray-50 flex-shrink-0">
             <motion.div
@@ -109,7 +109,7 @@ export default function Register() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="px-6 py-4"
+            className="px-6 py-4 overflow-y-auto min-h-0"
           >
             <AuthForm
               type="register"

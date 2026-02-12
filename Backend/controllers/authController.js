@@ -101,6 +101,7 @@ export const registerUser = async (req, res) => {
     console.log('[Auth] User created successfully:', user._id);
 
     // Send verification email
+    let emailSent = true;
     try {
       await sendEmail({
         email: user.email,
@@ -110,14 +111,15 @@ export const registerUser = async (req, res) => {
       console.log('[Auth] Verification email sent to:', user.email);
     } catch (emailErr) {
       console.error('[Auth] Failed to send email:', emailErr);
-      // We could delete the user or just let them try to resend, for now let's notify client
-      // user.deleteOne(); 
-      // return res.status(500).json({ error: 'Failed to send verification email' });
+      emailSent = false;
     }
 
     res.status(201).json({
-      message: 'Registration successful. Please check your email for the verification code.',
-      email: user.email
+      message: emailSent
+        ? 'Registration successful. Please check your email for the verification code.'
+        : 'Registration successful, but we could not send the verification email right now. Please click "Resend Verification Code".',
+      email: user.email,
+      emailSent
     });
 
   } catch (err) {

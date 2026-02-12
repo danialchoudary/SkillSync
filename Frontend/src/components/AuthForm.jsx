@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
 import { register, login, verifyEmail, resendCode } from '../features/auth/authSlice';
 import RoleToggle from './AuthForm/RoleToggle';
 import JobSeekerFields from './AuthForm/JobSeekerFields';
@@ -102,6 +103,9 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       if (register.fulfilled.match(resultAction)) {
         setRegisteredEmail(form.email);
         setStep(2); // Move to verification step
+        if (resultAction.payload?.emailSent === false) {
+          await dispatch(resendCode(form.email));
+        }
       }
     } else {
       data = {
@@ -159,6 +163,13 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
           >
             Back to Registration
           </button>
+
+          <Link
+            to="/login"
+            className="text-xs text-gray-600 hover:text-gray-800 underline"
+          >
+            Go to Login
+          </Link>
         </div>
       </div>
     );

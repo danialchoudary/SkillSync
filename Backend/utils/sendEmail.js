@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const createTransporter = () => {
     const host = process.env.EMAIL_HOST;
     const user = process.env.EMAIL_USER;
@@ -42,7 +44,19 @@ const sendEmail = async (options) => {
         html: options.message,
     };
 
-    await transporter.sendMail(mailOptions);
+    // Retry once for transient SMTP/provider issues to improve first-send reliability.
+    try {
+        await transporter.sendMail(mailOptions);
+    } catch (firstErr) {
+        const msg = String(firstErr?.message || '').toLowerCase();
+        const isConfigError = msg.includes('not set');
+        if (isConfigError) {
+            throw firstErr;
+        }
+
+        await sleep(1200);
+        await transporter.sendMail(mailOptions);
+    }
 };
 
 export default sendEmail;
