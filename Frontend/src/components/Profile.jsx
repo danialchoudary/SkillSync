@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { FaUser, FaBuilding, FaEdit, FaFileAlt, FaBriefcase, FaAward, FaClock, FaExternalLinkAlt } from 'react-icons/fa';
+import { User, Mail, Edit2, FileText, Briefcase, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
 import EditProfileModal from './EditProfileModal';
 import { getMe } from '../services/api';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import Footer from './Footer';
-import { motion } from 'framer-motion';
 import RecruiterSidebar from './RecruiterSidebar';
 import { getImageUrl, getResumeUrl } from '../utils/urlHelper';
 
@@ -40,253 +39,181 @@ export default function Profile() {
 	}, [user]);
 
 	if (loading) return (
-		<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-			<motion.div
-				initial={{ opacity: 0, scale: 0.8 }}
-				animate={{ opacity: 1, scale: 1 }}
-				transition={{ duration: 0.3 }}
-				className="text-center"
-			>
-				<motion.div
-					animate={{ rotate: 360 }}
-					transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-					className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full"
-				/>
-				<motion.p
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.2 }}
-					className="text-gray-600 font-medium"
-				>
-					Loading your profile...
-				</motion.p>
-			</motion.div>
+		<div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+			<div className="text-center">
+				<div className="w-12 h-12 border-4 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+				<p className="text-[var(--color-text-secondary)] font-medium">Loading your profile...</p>
+			</div>
 		</div>
 	);
 
 	if (error) return (
-		<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center border border-red-100"
-			>
-				<div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
-					<span className="text-3xl">⚠️</span>
+		<div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+			<div className="bg-[var(--color-surface)] rounded-2xl shadow-[var(--shadow-sm)] p-8 max-w-md text-center border border-[var(--color-border)]">
+				<div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center">
+					<AlertCircle className="text-[var(--color-danger)] w-8 h-8" />
 				</div>
-				<h3 className="text-xl font-bold text-gray-900 mb-2">Error</h3>
-				<p className="text-red-500">{error}</p>
-			</motion.div>
+				<h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Something went wrong</h3>
+				<p className="text-[var(--color-danger)] text-sm mb-6">{error}</p>
+				<button onClick={fetchUser} className="px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-lg font-bold hover:bg-[var(--color-accent-hover)] transition-colors">
+					Try Again
+				</button>
+			</div>
 		</div>
 	);
 
 	if (!user) return null;
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 flex flex-col">
+		<div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
 			<Topbar user={user} />
-			<div className="flex flex-1 overflow-hidden">
-				{/* Sidebar fixed, main content scrollable */}
-				<div className="relative flex-1 flex">
-					<div className="fixed left-0 top-14 h-[calc(100vh-4rem)] min-h-0 w-64 z-20">
-						{user.role === 'recruiter' ? (
-							<RecruiterSidebar activeSection="profile" />
-						) : (
-							<Sidebar activeSection="profile" />
-						)}
-					</div>
-					<main className="flex-1 ml-64 overflow-y-auto">
-						<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-							{/* Page Header */}
-							<motion.div
-								initial={{ opacity: 0, y: -20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ duration: 0.5 }}
-								className="mb-8"
-							>
-								<h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
-									My Profile
-								</h1>
-								<p className="text-gray-600">Manage your personal information and preferences</p>
-							</motion.div>
 
-							{/* Profile Card */}
-							<motion.div
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ duration: 0.5, delay: 0.1 }}
-								className="bg-white rounded-3xl shadow-xl border border-gray-200/60 overflow-hidden mb-6"
-							>
-								{/* Header with gradient */}
-								<div className="relative h-32 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500">
-									<div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 to-purple-600/50"></div>
-									<div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
-								</div>
-
-								{/* Profile Info Section */}
-								<div className="relative px-6 sm:px-8 pb-8">
-									{/* Avatar & Basic Info */}
-									<div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-16 mb-6">
-										{/* Avatar */}
-										<motion.div
-											initial={{ scale: 0, rotate: -180 }}
-											animate={{ scale: 1, rotate: 0 }}
-											transition={{ type: 'spring', duration: 0.6, delay: 0.2 }}
-											className="relative"
-										>
-											<div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-500/30 rounded-full blur-xl"></div>
-											{getImageUrl(user.profilePicture) ? (
-												<img
-													src={getImageUrl(user.profilePicture)}
-													alt="avatar"
-													className="relative w-32 h-32 rounded-full object-cover border-4 border-white shadow-2xl ring-2 ring-gray-100"
-												/>
-											) : (
-												<span className="relative w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 flex items-center justify-center text-blue-600 border-4 border-white shadow-2xl ring-2 ring-gray-100">
-													<FaUser size={48} />
-												</span>
-											)}
-										</motion.div>
-
-										{/* Name & Email */}
-										<motion.div
-											initial={{ opacity: 0, x: -20 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{ delay: 0.3 }}
-											className="flex-1"
-										>
-											<h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{user.name}</h2>
-											<p className="text-gray-600 text-sm sm:text-base flex items-center gap-2">
-												<span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-												{user.email}
-											</p>
-										</motion.div>
-
-										{/* Edit Button */}
-										<motion.button
-											initial={{ opacity: 0, scale: 0.8 }}
-											animate={{ opacity: 1, scale: 1 }}
-											transition={{ delay: 0.4 }}
-											whileHover={{ scale: 1.05, y: -2 }}
-											whileTap={{ scale: 0.98 }}
-											className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-lg shadow-blue-500/30 transition-all duration-300 flex items-center gap-2"
-											onClick={() => setEditOpen(true)}
-										>
-											<FaEdit />
-											<span>Edit Profile</span>
-										</motion.button>
-									</div>
-
-									<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-6"></div>
-
-									{/* Details Grid */}
-									<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-										{/* Resume Section */}
-										<motion.div
-											initial={{ opacity: 0, y: 20 }}
-											animate={{ opacity: 1, y: 0 }}
-											transition={{ delay: 0.5 }}
-											className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100"
-										>
-											<div className="flex items-center gap-3 mb-4">
-												<div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-													<FaFileAlt className="text-white text-xl" />
-												</div>
-												<h3 className="text-lg font-bold text-gray-900">Resume / CV</h3>
-											</div>
-											{getResumeUrl(user.resumeUrl || user.resumeLink) ? (
-												<motion.a
-													whileHover={{ scale: 1.02, x: 2 }}
-													href={getResumeUrl(user.resumeUrl || user.resumeLink)}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-700 rounded-xl hover:bg-blue-100 border border-blue-200 font-medium text-sm transition-all duration-300 group shadow-sm"
-												>
-													<FaFileAlt />
-													<span>View Resume</span>
-													<FaExternalLinkAlt className="text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
-												</motion.a>
-											) : (
-												<div className="flex items-center gap-2 text-gray-500 text-sm">
-													<div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
-														<FaFileAlt className="text-gray-400" />
-													</div>
-													<span>No resume uploaded yet</span>
-												</div>
-											)}
-										</motion.div>
-
-										{/* Experience Section */}
-										<motion.div
-											initial={{ opacity: 0, y: 20 }}
-											animate={{ opacity: 1, y: 0 }}
-											transition={{ delay: 0.6 }}
-											className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100"
-										>
-											<div className="flex items-center gap-3 mb-4">
-												<div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-													<FaBriefcase className="text-white text-xl" />
-												</div>
-												<h3 className="text-lg font-bold text-gray-900">Experience</h3>
-											</div>
-											<div className="space-y-3">
-												<div className="flex items-center gap-2">
-													<FaClock className="text-purple-600" />
-													<span className="font-semibold text-gray-900">{user.experience?.years || 0} years</span>
-												</div>
-												{user.experience?.summary && (
-													<p className="text-gray-700 text-sm leading-relaxed pl-6">
-														{user.experience.summary}
-													</p>
-												)}
-											</div>
-										</motion.div>
-									</div>
-
-									{/* Skills Section - Full Width */}
-									<motion.div
-										initial={{ opacity: 0, y: 20 }}
-										animate={{ opacity: 1, y: 0 }}
-										transition={{ delay: 0.7 }}
-										className="mt-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100"
-									>
-										<div className="flex items-center gap-3 mb-4">
-											<div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-												<FaAward className="text-white text-xl" />
-											</div>
-											<h3 className="text-lg font-bold text-gray-900">Skills & Expertise</h3>
-										</div>
-										<div className="flex flex-wrap gap-3">
-											{user.skills && user.skills.length > 0 ? (
-												user.skills.map((skill, i) => (
-													<motion.span
-														key={i}
-														initial={{ opacity: 0, scale: 0.8 }}
-														animate={{ opacity: 1, scale: 1 }}
-														transition={{ delay: 0.8 + i * 0.05 }}
-														whileHover={{ scale: 1.05, y: -2 }}
-														className="px-4 py-2 bg-white text-emerald-700 rounded-xl text-sm font-semibold border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-300"
-													>
-														{skill}
-													</motion.span>
-												))
-											) : (
-												<div className="flex items-center gap-2 text-gray-500 text-sm">
-													<div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
-														<FaAward className="text-gray-400" />
-													</div>
-													<span>No skills added yet</span>
-												</div>
-											)}
-										</div>
-									</motion.div>
-								</div>
-							</motion.div>
-						</div>
-					</main>
+			<div className="relative flex-1 flex">
+				<div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
+					{user.role === 'recruiter' ? (
+						<RecruiterSidebar activeSection="profile" />
+					) : (
+						<Sidebar activeSection="profile" />
+					)}
 				</div>
+
+				<main className="flex-1 lg:ml-64 pt-14 flex flex-col">
+					<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+						{/* Page Header */}
+						<div className="mb-10">
+							<h1 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">My Profile</h1>
+							<p className="text-[var(--color-text-secondary)] font-medium">Manage your personal information and preferences</p>
+						</div>
+
+						{/* Profile Card */}
+						<div className="bg-[var(--color-surface)] rounded-2xl shadow-[var(--shadow-sm)] border border-[var(--color-border)] overflow-hidden mb-8">
+							{/* Cover Area */}
+							<div className="h-32 bg-[var(--color-surface-secondary)] relative border-b border-[var(--color-border)]">
+								<div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+							</div>
+
+							{/* Profile Info Section */}
+							<div className="relative px-6 sm:px-10 pb-10">
+								{/* Avatar & Basic Info */}
+								<div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-12 mb-8">
+									{/* Avatar */}
+									<div className="relative">
+										{getImageUrl(user.profilePicture) ? (
+											<img
+												src={getImageUrl(user.profilePicture)}
+												alt="avatar"
+												className="w-32 h-32 rounded-full object-cover border-4 border-[var(--color-surface)] shadow-[var(--shadow-md)] bg-[var(--color-surface-secondary)]"
+											/>
+										) : (
+											<div className="w-32 h-32 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)] border-4 border-[var(--color-surface)] shadow-[var(--shadow-md)]">
+												<User size={48} />
+											</div>
+										)}
+									</div>
+
+									{/* Name & Email */}
+									<div className="flex-1 pt-2">
+										<h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">{user.name}</h2>
+										<p className="text-[var(--color-text-secondary)] text-sm font-medium flex items-center gap-2">
+											<Mail size={14} className="text-[var(--color-text-tertiary)]" />
+											{user.email}
+										</p>
+									</div>
+
+									{/* Edit Button */}
+									<button
+										className="px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-lg font-bold hover:bg-[var(--color-accent-hover)] transition-all shadow-[var(--shadow-sm)] flex items-center gap-2"
+										onClick={() => setEditOpen(true)}
+									>
+										<Edit2 size={16} />
+										<span>Edit Profile</span>
+									</button>
+								</div>
+
+								<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
+									{/* Resume Section */}
+									<div className="bg-[var(--color-surface-secondary)] rounded-xl p-6 border border-[var(--color-border)]">
+										<div className="flex items-center gap-3 mb-5">
+											<div className="w-10 h-10 rounded-lg bg-[var(--color-accent-bg)] flex items-center justify-center text-[var(--color-accent)]">
+												<FileText size={20} />
+											</div>
+											<h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-tight">Resume / CV</h3>
+										</div>
+										{getResumeUrl(user.resumeUrl || user.resumeLink) ? (
+											<a
+												href={getResumeUrl(user.resumeUrl || user.resumeLink)}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-surface)] text-[var(--color-accent)] rounded-lg border border-[var(--color-border)] font-bold text-xs hover:bg-[var(--color-surface-secondary)] transition-all group"
+											>
+												<FileText size={14} />
+												<span>View Current Resume</span>
+												<ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+											</a>
+										) : (
+											<div className="flex items-center gap-3 text-[var(--color-text-tertiary)] py-2">
+												<FileText size={16} />
+												<span className="text-xs font-medium">No resume uploaded yet</span>
+											</div>
+										)}
+									</div>
+
+									{/* Experience Section */}
+									<div className="bg-[var(--color-surface-secondary)] rounded-xl p-6 border border-[var(--color-border)]">
+										<div className="flex items-center gap-3 mb-5">
+											<div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-500">
+												<Briefcase size={20} />
+											</div>
+											<h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-tight">Experience</h3>
+										</div>
+										<div className="space-y-4">
+											<div className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-primary)]">
+												<Clock size={16} className="text-[var(--color-text-tertiary)]" />
+												<span>{user.experience?.years || 0} years professional experience</span>
+											</div>
+											{user.experience?.summary && (
+												<p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
+													{user.experience.summary}
+												</p>
+											)}
+										</div>
+									</div>
+								</div>
+
+								{/* Skills Section */}
+								<div className="mt-8 bg-[var(--color-surface-secondary)] rounded-xl p-6 border border-[var(--color-border)]">
+									<div className="flex items-center gap-3 mb-6">
+										<div className="w-10 h-10 rounded-lg bg-[var(--color-success-bg)] flex items-center justify-center text-[var(--color-success)]">
+											<Award size={20} />
+										</div>
+										<h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-tight">Skills & Expertise</h3>
+									</div>
+									<div className="flex flex-wrap gap-2.5">
+										{user.skills && user.skills.length > 0 ? (
+											user.skills.map((skill, i) => (
+												<span
+													key={i}
+													className="px-4 py-1.5 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-xs font-bold border border-[var(--color-border)] shadow-sm"
+												>
+													{skill}
+												</span>
+											))
+										) : (
+											<div className="flex items-center gap-2 text-[var(--color-text-tertiary)] py-2">
+												<Award size={16} />
+												<span className="text-xs font-medium">No skills added yet</span>
+											</div>
+										)}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</main>
 			</div>
-			<Footer />
+			<div className="lg:ml-64">
+				<Footer />
+			</div>
 			<EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} user={user} onSaved={fetchUser} />
 		</div>
 	);

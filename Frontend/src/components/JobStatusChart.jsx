@@ -1,29 +1,17 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart as PieIcon } from 'lucide-react';
 
 const JobStatusChart = ({ data }) => {
   return (
-    <div className="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl p-6 border border-gray-100">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="w-6 h-6 text-white"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 3v11.25M3.75 14.25v6M3.75 20.25h16.5M20.25 20.25v-6M20.25 14.25V3M20.25 3H3.75m16.5 0v6M3.75 9h16.5"
-            />
-          </svg>
+    <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
+          <PieIcon size={20} />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Job Status</h3>
-          <p className="text-xs text-gray-500">Current distribution</p>
+          <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-tight">Job Status</h3>
+          <p className="text-[11px] font-medium text-[var(--color-text-tertiary)]">Current distribution</p>
         </div>
       </div>
 
@@ -38,6 +26,9 @@ const JobStatusChart = ({ data }) => {
               outerRadius={90}
               paddingAngle={5}
               dataKey="value"
+              stroke="none"
+              animationBegin={0}
+              animationDuration={1000}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
@@ -45,24 +36,28 @@ const JobStatusChart = ({ data }) => {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '12px',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                boxShadow: 'var(--shadow-md)',
+                padding: '8px 12px',
               }}
+              itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+              cursor={{ fill: 'transparent' }}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="space-y-3 mt-4 pt-4 border-t border-gray-100">
+      <div className="space-y-3 mt-6 pt-6 border-t border-[var(--color-border)]">
         {data.map((item, index) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-              <span className="text-sm text-gray-600">{item.name}</span>
+          <div key={index} className="flex items-center justify-between group">
+            <div className="flex items-center gap-2.5">
+              <div className="w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ backgroundColor: item.color }}></div>
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">{item.name}</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{item.value}</span>
+            <span className="text-sm font-bold text-[var(--color-text-primary)]">{item.value}</span>
           </div>
         ))}
       </div>

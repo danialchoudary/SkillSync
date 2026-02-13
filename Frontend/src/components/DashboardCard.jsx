@@ -1,16 +1,25 @@
 import React from 'react';
 
-const DashboardCard = ({ title, value, icon: Icon, color }) => {
+const DashboardCard = ({ title, value, icon: Icon, color = 'blue' }) => {
+  // Map Tailwind colors to design system tokens where possible, or use clean fallbacks
+  const colorMap = {
+    blue: 'text-[var(--color-accent)] bg-[var(--color-accent-bg)]',
+    green: 'text-[var(--color-success)] bg-[var(--color-success-bg)]',
+    orange: 'text-orange-500 bg-orange-50',
+    purple: 'text-purple-500 bg-purple-50',
+    red: 'text-[var(--color-danger)] bg-[var(--color-danger-bg)]',
+  };
+
+  const selectedColor = colorMap[color] || colorMap.blue;
+
   return (
-    <div className={`bg-white shadow-md rounded-lg p-4 border-l-4 border-${color}-500`}>
-      <div className="flex items-center">
-        <div className={`p-3 rounded-full bg-${color}-100 text-${color}-500`}>
-          <Icon className="w-6 h-6" />
-        </div>
-        <div className="ml-4">
-          <h3 className="text-lg font-semibold text-gray-700">{title}</h3>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-        </div>
+    <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)] flex items-center gap-4 hover:shadow-[var(--shadow-md)] transition-all duration-300">
+      <div className={`p-3 rounded-xl ${selectedColor} flex-shrink-0`}>
+        <Icon size={24} strokeWidth={2.5} />
+      </div>
+      <div>
+        <h3 className="text-[11px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-0.5">{title}</h3>
+        <p className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">{value}</p>
       </div>
     </div>
   );

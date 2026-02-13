@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { FaUser, FaBuilding } from 'react-icons/fa';
 import { getImageUrl } from '../utils/urlHelper';
 
@@ -14,17 +13,17 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
           <img
             src={getImageUrl(user.companyLogo)}
             alt="logo"
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+            className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--color-border)]"
           />
-          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
-            <FaBuilding className="text-white text-[8px]" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[var(--color-accent)] rounded-full border-2 border-[var(--color-surface)] flex items-center justify-center">
+            <FaBuilding className="text-white text-[6px]" />
           </div>
         </div>
       );
     } else {
       avatar = (
-        <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200 rounded-full border-2 border-blue-300 shadow-sm">
-          <FaBuilding className="text-blue-600 text-lg" />
+        <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-accent-bg)] rounded-full">
+          <FaBuilding className="text-[var(--color-accent)] text-sm" />
         </div>
       );
     }
@@ -35,33 +34,29 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
           <img
             src={getImageUrl(user.profilePicture)}
             alt="avatar"
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+            className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--color-border)]"
           />
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
         </div>
       );
     } else {
       avatar = (
-        <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 rounded-full border-2 border-gray-300 shadow-sm">
-          <FaUser className="text-gray-600 text-lg" />
+        <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-full">
+          <FaUser className="text-[var(--color-text-tertiary)] text-sm" />
         </div>
       );
     }
   }
 
   return (
-    <motion.li
-      whileHover={{ x: 4 }}
-      transition={{ duration: 0.2 }}
-      className="relative"
-    >
+    <li className="relative">
       <button
         className={`
-          flex items-center gap-4 w-full text-left px-4 py-3.5 
-          transition-all duration-200 ease-in-out
+          flex items-center gap-3 w-full text-left px-4 py-3
+          transition-colors
           ${isSelected
-            ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500'
-            : 'hover:bg-gray-50 border-l-4 border-transparent hover:border-gray-200'
+            ? 'bg-[var(--color-accent-bg)] border-l-2 border-[var(--color-accent)]'
+            : 'hover:bg-[var(--color-surface-secondary)] border-l-2 border-transparent'
           }
         `}
         onClick={() => onUserSelect(user)}
@@ -73,10 +68,10 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
             <h3 className={`
-              text-sm font-semibold truncate
-              ${isSelected ? 'text-blue-900' : 'text-gray-900'}
+              text-sm font-medium truncate
+              ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-primary)]'}
             `}>
               {user.role === 'recruiter'
                 ? (user.companyName || 'Unnamed Company')
@@ -84,25 +79,21 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
               }
             </h3>
             {unread > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full px-2 shadow-md"
-              >
+              <span className="flex-shrink-0 min-w-[18px] h-[18px] flex items-center justify-center bg-[var(--color-danger)] text-white text-[10px] font-semibold rounded-full px-1.5">
                 {unread > 99 ? '99+' : unread}
-              </motion.span>
+              </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             <span className={`
               text-xs truncate
-              ${isSelected ? 'text-blue-700' : 'text-gray-500'}
+              ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-tertiary)]'}
             `}>
               {user.role === 'recruiter' ? 'Recruiter' : 'Job Seeker'}
             </span>
             {user.role === 'recruiter' && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-accent-bg)] text-[var(--color-accent)]">
                 Company
               </span>
             )}
@@ -111,22 +102,9 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
 
         {/* Selection Indicator */}
         {isSelected && (
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full"
-          />
+          <div className="flex-shrink-0 w-1.5 h-1.5 bg-[var(--color-accent)] rounded-full" />
         )}
       </button>
-
-      {/* Hover Effect Gradient */}
-      <div className={`
-        absolute inset-0 pointer-events-none transition-opacity duration-300
-        ${isSelected ? 'opacity-0' : 'opacity-0 hover:opacity-100'}
-      `}>
-        <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-b from-transparent via-blue-200 to-transparent"></div>
-      </div>
-    </motion.li>
+    </li>
   );
 }

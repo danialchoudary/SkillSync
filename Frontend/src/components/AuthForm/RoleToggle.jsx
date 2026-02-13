@@ -1,38 +1,30 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 export default function RoleToggle({ role, setRole }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="mb-4"
-    >
-      <div className="bg-gray-100 p-1 rounded-lg flex gap-1">
+    <div className="mb-6">
+      <div className="bg-[var(--color-surface-secondary)] p-1 rounded-xl flex gap-1 border border-[var(--color-border)]">
         <button
           type="button"
           onClick={() => setRole('jobseeker')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all duration-200 ${
-            role === 'jobseeker'
-              ? 'bg-white text-blue-600 shadow-md'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${role === 'jobseeker'
+            ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-sm)] border border-[var(--color-border)]'
+            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+            }`}
         >
           Job Seeker
         </button>
         <button
           type="button"
           onClick={() => setRole('recruiter')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all duration-200 ${
-            role === 'recruiter'
-              ? 'bg-white text-blue-600 shadow-md'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${role === 'recruiter'
+            ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[var(--shadow-sm)] border border-[var(--color-border)]'
+            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+            }`}
         >
           Recruiter
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

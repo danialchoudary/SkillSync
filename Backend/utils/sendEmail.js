@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const RETRY_DELAYS_MS = [0, 1500, 4000];
 
 const createTransporter = () => {
     const host = process.env.EMAIL_HOST;
@@ -22,6 +23,9 @@ const createTransporter = () => {
         host,
         port,
         secure, // true for 465, false for other ports
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
         auth: {
             user,
             pass,
@@ -35,8 +39,6 @@ export const verifyEmailTransport = async () => {
 };
 
 const sendEmail = async (options) => {
-    const transporter = createTransporter();
-
     const mailOptions = {
         from: `"SkillSync Support" <${process.env.EMAIL_USER}>`,
         to: options.email,
@@ -44,19 +46,34 @@ const sendEmail = async (options) => {
         html: options.message,
     };
 
-    // Retry once for transient SMTP/provider issues to improve first-send reliability.
-    try {
-        await transporter.sendMail(mailOptions);
-    } catch (firstErr) {
-        const msg = String(firstErr?.message || '').toLowerCase();
-        const isConfigError = msg.includes('not set');
-        if (isConfigError) {
-            throw firstErr;
+    let lastErr = null;
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
+        const delay = RETRY_DELAYS_MS[attempt];
+        if (delay > 0) {
+            await sleep(delay);
         }
 
-        await sleep(1200);
-        await transporter.sendMail(mailOptions);
+        try {
+            const transporter = createTransporter();
+            await transporter.verify();
+            await transporter.sendMail(mailOptions);
+            return;
+        } catch (err) {
+            lastErr = err;
+            const code = String(err?.code || '');
+            const msg = String(err?.message || '').toLowerCase();
+            const isConfigError =
+                msg.includes('not set') ||
+                code === 'EAUTH' ||
+                code === 'EENVELOPE';
+
+            if (isConfigError) {
+                break;
+            }
+        }
     }
+
+    throw lastErr || new Error('Failed to send email');
 };
 
 export default sendEmail;

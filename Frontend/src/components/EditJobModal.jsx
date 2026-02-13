@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     X,
     Briefcase,
@@ -10,30 +9,22 @@ import {
     Calendar,
     FileText,
     Save,
-    AlertCircle,
-    CheckCircle
+    AlertCircle
 } from 'lucide-react';
 
 const FormField = ({ label, icon: Icon, children, error }) => (
-    <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            {Icon && <Icon className="w-4 h-4 text-blue-500" />}
+    <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-[13px] font-semibold text-[var(--color-text-secondary)]">
+            {Icon && <Icon className="w-3.5 h-3.5 text-[var(--color-accent)]" />}
             {label}
         </label>
         {children}
-        <AnimatePresence>
-            {error && (
-                <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="text-xs text-red-500 flex items-center gap-1 mt-1"
-                >
-                    <AlertCircle className="w-3 h-3" />
-                    {error}
-                </motion.p>
-            )}
-        </AnimatePresence>
+        {error && (
+            <p className="text-[11px] text-[var(--color-danger)] flex items-center gap-1 mt-1">
+                <AlertCircle className="w-3 h-3" />
+                {error}
+            </p>
+        )}
     </div>
 );
 
@@ -93,181 +84,147 @@ export default function EditJobModal({ job, open, onClose, onUpdate, loading }) 
 
     if (!open) return null;
 
+    const inputClasses = (error) => `
+        w-full px-4 py-2.5 rounded-lg border text-sm transition-colors outline-none bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)]
+        ${error ? 'border-[var(--color-danger)] focus:border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15'}
+    `;
+
     return (
-        <AnimatePresence>
-            {open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+            {/* Backdrop */}
+            <div className="fixed inset-0" onClick={onClose} />
+
+            {/* Modal Container */}
+            <div className="relative w-full max-w-2xl bg-[var(--color-surface)] rounded-xl shadow-[var(--shadow-lg)] overflow-hidden flex flex-col max-h-[90vh]">
+
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--color-accent-bg)] flex items-center justify-center">
+                            <Briefcase className="w-5 h-5 text-[var(--color-accent)]" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Edit Job Posting</h2>
+                            <p className="text-xs text-[var(--color-text-tertiary)]">Modify the details of your listing</p>
+                        </div>
+                    </div>
+                    <button
                         onClick={onClose}
-                        className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
-                    />
-
-                    {/* Modal */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="p-1.5 hover:bg-[var(--color-surface-secondary)] rounded-full transition-colors text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
                     >
-                        {/* Header */}
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                    <Briefcase className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">Edit Job Posting</h2>
-                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Modify the details of your listing</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={onClose}
-                                className="p-2 hover:bg-white rounded-full transition-colors group"
-                            >
-                                <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
-                            <form id="edit-job-form" onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <FormField label="Job Title" icon={Briefcase} error={errors.title}>
-                                        <input
-                                            name="title"
-                                            value={formData.title}
-                                            onChange={handleChange}
-                                            placeholder="e.g. Senior Frontend Engineer"
-                                            className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all outline-none ${errors.title ? 'border-red-200 focus:border-red-500' : 'border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                                }`}
-                                        />
-                                    </FormField>
-                                    <FormField label="Company" icon={Building2} error={errors.company}>
-                                        <input
-                                            name="company"
-                                            value={formData.company}
-                                            onChange={handleChange}
-                                            placeholder="Your Company Name"
-                                            className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all outline-none ${errors.company ? 'border-red-200 focus:border-red-500' : 'border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                                }`}
-                                        />
-                                    </FormField>
-                                </div>
-
-                                <FormField label="Job Description" icon={FileText} error={errors.description}>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleChange}
-                                        rows={4}
-                                        placeholder="Describe the role, responsibilities, and requirements..."
-                                        className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all outline-none resize-none ${errors.description ? 'border-red-200 focus:border-red-500' : 'border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                            }`}
-                                    />
-                                </FormField>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <FormField label="Location" icon={MapPin} error={errors.location}>
-                                        <input
-                                            name="location"
-                                            value={formData.location}
-                                            onChange={handleChange}
-                                            placeholder="e.g. New York, NY (Remote)"
-                                            className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all outline-none ${errors.location ? 'border-red-200 focus:border-red-500' : 'border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                                }`}
-                                        />
-                                    </FormField>
-                                    <FormField label="Salary Range" icon={DollarSign} error={errors.salary}>
-                                        <input
-                                            name="salary"
-                                            value={formData.salary}
-                                            onChange={handleChange}
-                                            placeholder="e.g. $120k - $150k"
-                                            className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all outline-none ${errors.salary ? 'border-red-200 focus:border-red-500' : 'border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5'
-                                                }`}
-                                        />
-                                    </FormField>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <FormField label="Required Skills" icon={Code}>
-                                        <input
-                                            name="skills"
-                                            value={formData.skills}
-                                            onChange={handleChange}
-                                            placeholder="e.g. React, Node.js, AWS"
-                                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
-                                        />
-                                    </FormField>
-                                    <FormField label="Experience (Years)" icon={Calendar}>
-                                        <input
-                                            name="experience"
-                                            type="number"
-                                            min="0"
-                                            value={formData.experience}
-                                            onChange={handleChange}
-                                            placeholder="e.g. 5"
-                                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
-                                        />
-                                    </FormField>
-                                </div>
-                            </form>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="px-8 py-6 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
-                            <button
-                                onClick={onClose}
-                                className="px-6 py-2.5 rounded-xl text-gray-600 font-semibold hover:bg-gray-100 active:scale-95 transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                form="edit-job-form"
-                                type="submit"
-                                disabled={loading}
-                                className="px-8 py-2.5 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {loading ? (
-                                    <>
-                                        <motion.div
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                                        />
-                                        <span>Saving...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-4 h-4" />
-                                        <span>Save Changes</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </motion.div>
-
-                    <style jsx>{`
-            .custom-scrollbar::-webkit-scrollbar {
-              width: 6px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: #e2e8f0;
-              border-radius: 10px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background: #cbd5e1;
-            }
-          `}</style>
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-            )}
-        </AnimatePresence>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
+                    <form id="edit-job-form" onSubmit={handleSubmit} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormField label="Job Title" icon={Briefcase} error={errors.title}>
+                                <input
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Senior Frontend Engineer"
+                                    className={inputClasses(errors.title)}
+                                />
+                            </FormField>
+                            <FormField label="Company" icon={Building2} error={errors.company}>
+                                <input
+                                    name="company"
+                                    value={formData.company}
+                                    onChange={handleChange}
+                                    placeholder="Your Company Name"
+                                    className={inputClasses(errors.company)}
+                                />
+                            </FormField>
+                        </div>
+
+                        <FormField label="Job Description" icon={FileText} error={errors.description}>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                rows={5}
+                                placeholder="Describe the role, responsibilities, and requirements..."
+                                className={`${inputClasses(errors.description)} resize-none`}
+                            />
+                        </FormField>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormField label="Location" icon={MapPin} error={errors.location}>
+                                <input
+                                    name="location"
+                                    value={formData.location}
+                                    onChange={handleChange}
+                                    placeholder="e.g. New York, NY (Remote)"
+                                    className={inputClasses(errors.location)}
+                                />
+                            </FormField>
+                            <FormField label="Salary Range" icon={DollarSign} error={errors.salary}>
+                                <input
+                                    name="salary"
+                                    value={formData.salary}
+                                    onChange={handleChange}
+                                    placeholder="e.g. $120k - $150k"
+                                    className={inputClasses(errors.salary)}
+                                />
+                            </FormField>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormField label="Required Skills" icon={Code}>
+                                <input
+                                    name="skills"
+                                    value={formData.skills}
+                                    onChange={handleChange}
+                                    placeholder="e.g. React, Node.js, AWS"
+                                    className={inputClasses()}
+                                />
+                            </FormField>
+                            <FormField label="Experience (Years)" icon={Calendar}>
+                                <input
+                                    name="experience"
+                                    type="number"
+                                    min="0"
+                                    value={formData.experience}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 5"
+                                    className={inputClasses()}
+                                />
+                            </FormField>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        form="edit-job-form"
+                        type="submit"
+                        disabled={loading}
+                        className="px-6 py-2 bg-[var(--color-accent)] text-white text-sm font-bold rounded-lg hover:bg-[var(--color-accent-hover)] transition-colors shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        {loading ? (
+                            <>
+                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Saving...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-3.5 h-3.5" />
+                                <span>Save Changes</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }

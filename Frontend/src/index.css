@@ -1,15 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "./design-tokens.css";
 
+/* ── Base Reset & Defaults ── */
 html,
 body {
   margin: 0;
   min-height: 100%;
+  font-family: var(--font-family);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Selection ── */
+::selection {
+  background-color: rgba(0, 113, 227, 0.15);
+  color: var(--color-text-primary);
+}
+
+/* ── Scrollbar (global) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ── Form Inputs ── */
 .input {
-  @apply w-full p-2 mb-2 border rounded;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body);
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  outline: none;
 }
 
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Buttons ── */
 .btn {
-  @apply bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-size: var(--text-body);
+  font-weight: 600;
+  font-family: var(--font-family);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-base), transform var(--transition-fast);
+  outline: none;
+}
+
+.btn:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn:active {
+  background-color: var(--color-accent-active);
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-border);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+}
+
+.btn-danger:hover {
+  background-color: #E5342B;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  font-size: var(--text-overline);
+  font-weight: var(--text-overline-weight);
+  letter-spacing: var(--text-overline-tracking);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.badge-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.badge-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }

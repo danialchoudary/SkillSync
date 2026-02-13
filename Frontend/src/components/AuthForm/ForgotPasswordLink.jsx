@@ -5,7 +5,7 @@ export default function ForgotPasswordLink() {
     <div className="text-center pt-2">
       <a
         href="#"
-        className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+        className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors"
       >
         Forgot your password?
       </a>

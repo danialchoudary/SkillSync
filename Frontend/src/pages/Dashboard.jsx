@@ -19,7 +19,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [editOpen, setEditOpen] = useState(false);
 
   const fetchUser = () => {
     setLoading(true);
@@ -37,7 +36,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchUser();
-    // Fetch application stats for job seeker
     async function fetchApplicationStats() {
       try {
         const res = await import('../services/api').then(m => m.default.get('/applications/mine'));
@@ -54,56 +52,34 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="text-center"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full"
-        />
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-gray-600 font-medium"
-        >
-          Loading your dashboard...
-        </motion.p>
-      </motion.div>
+    <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+      <div className="text-center">
+        <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+      </div>
     </div>
   );
 
   if (error) return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center border border-red-100"
-      >
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
-          <span className="text-3xl">⚠️</span>
+    <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-8 max-w-md text-center">
+        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center">
+          <span className="text-xl">⚠️</span>
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Error</h3>
-        <p className="text-red-500">{error}</p>
-      </motion.div>
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Something went wrong</h3>
+        <p className="text-sm text-[var(--color-danger)]">{error}</p>
+      </div>
     </div>
   );
 
   if (!user) return null;
 
-  // Real application stats from backend
   const stats = {
     Applied: appStats.applied,
     Accepted: appStats.accepted,
     Rejected: appStats.rejected,
   };
 
-  // Calculate profile completion percentage and missing fields
   function getProfileCompletionAndMissing(user) {
     if (!user) return { percent: 0, missingFields: [] };
     let total = 5;
@@ -123,58 +99,47 @@ export default function Dashboard() {
   const { percent: profileCompletion, missingFields } = getProfileCompletionAndMissing(user);
   const notifications = user?.notifications || [];
 
-
-  // Allow dashboard to scroll vertically
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 flex flex-col">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
       <Topbar user={user} notifications={notifications} />
-      <div className="relative flex flex-1 overflow-hidden">
-        {/* Fixed Sidebar */}
-        <div className="fixed top-14 left-0 h-[calc(100vh-3.5rem)] z-20 w-64">
-          <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} unreadCount={unreadCount} />
+
+      <div className="relative flex-1 flex">
+        <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
+          <Sidebar
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            unreadCount={unreadCount}
+          />
         </div>
-        {/* Main Content with left margin for sidebar */}
-        <main className="flex-1 overflow-y-auto ml-64">
+
+        <main className="flex-1 lg:ml-64 pt-14 flex flex-col">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <AnimatePresence mode="wait">
               {activeSection === 'dashboard' && (
                 <motion.div
                   key="dashboard"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.4 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                   className="w-full flex flex-col justify-center items-center"
                 >
-                  {/* Welcome Header Section */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="mb-4 w-full"
-                  >
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 relative overflow-hidden w-full">
-                      {/* Decorative gradient background */}
-                      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-full blur-3xl -z-0"></div>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 relative z-10">
-                        {/* Avatar with gradient border */}
-                        <motion.div
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ type: 'spring', duration: 0.6, delay: 0.2 }}
-                          className="relative"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full blur-md opacity-30"></div>
+                  {/* Welcome Header */}
+                  <div className="mb-6 w-full">
+                    <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 sm:p-6 w-full">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {/* Avatar */}
+                        <div className="shrink-0">
                           {user.role === 'recruiter' ? (
                             user.companyLogo ? (
                               <img
                                 src={getImageUrl(user.companyLogo)}
                                 alt="company logo"
-                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
+                                className="w-14 h-14 rounded-full object-cover ring-1 ring-[var(--color-border)]"
                               />
                             ) : (
-                              <span className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 border-4 border-white shadow-xl">
-                                <FaBuilding size={32} />
+                              <span className="w-14 h-14 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)]">
+                                <FaBuilding size={22} />
                               </span>
                             )
                           ) : (
@@ -182,113 +147,73 @@ export default function Dashboard() {
                               <img
                                 src={getImageUrl(user.profilePicture)}
                                 alt="avatar"
-                                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-xl"
+                                className="w-14 h-14 rounded-full object-cover ring-1 ring-[var(--color-border)]"
                               />
                             ) : (
-                              <span className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-500 border-4 border-white shadow-xl">
-                                <FaUser size={32} />
+                              <span className="w-14 h-14 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)]">
+                                <FaUser size={22} />
                               </span>
                             )
                           )}
-                        </motion.div>
-                        {/* Welcome text */}
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 }}
-                          className="flex-1"
-                        >
-                          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-1">
-                            Welcome back, {user.name}!
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] mb-0.5 truncate">
+                            Welcome back, {user.name}
                           </h1>
-                          <p className="text-gray-600 text-xs sm:text-sm">
+                          <p className="text-sm text-[var(--color-text-secondary)]">
                             Here's what's happening with your job search today
                           </p>
-                        </motion.div>
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
 
-                  {/* Main Grid Layout - scrollable */}
+                  {/* Main Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-                    {/* Left Column - Stats & Profile */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="lg:col-span-2 flex flex-col gap-4"
-                    >
-                      {/* Profile Completion & Stats Cards */}
+                    {/* Left Column */}
+                    <div className="lg:col-span-2 flex flex-col gap-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <motion.div
-                          whileHover={{ y: -2 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <ProfileCompletionCard percent={profileCompletion} missingFields={missingFields} />
-                        </motion.div>
-                        <motion.div
-                          whileHover={{ y: -2 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <StatsCard stats={stats} />
-                        </motion.div>
+                        <ProfileCompletionCard percent={profileCompletion} missingFields={missingFields} />
+                        <StatsCard stats={stats} />
                       </div>
-                      {/* Activity Section */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        whileHover={{ y: -1 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 transition-all duration-300"
-                      >
+
+                      {/* Activity */}
+                      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
                         <ActivityList activities={activities} />
-                      </motion.div>
-                    </motion.div>
-                    {/* Right Column - Job Recommendations */}
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="flex flex-col gap-2"
-                    >
-                      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex-1 min-h-0 flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-bold text-base text-gray-900">
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="flex flex-col gap-4">
+                      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 flex-1 min-h-0 flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold text-[var(--color-text-primary)]">
                             Recommended for You
                           </h4>
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-semibold rounded-full shadow-sm">
+                          <span className="text-xs font-medium text-[var(--color-accent)] bg-[var(--color-accent-bg)] px-2 py-0.5 rounded-full">
                             {recommendedJobs.length} Jobs
                           </span>
                         </div>
-                        <div className="space-y-2 flex-1 min-h-0 overflow-auto custom-scrollbar pr-1">
+
+                        <div className="space-y-2 flex-1 min-h-0 overflow-auto pr-1">
                           {recommendedJobs.length > 0 ? (
-                            recommendedJobs.map((job, index) => (
-                              <motion.div
-                                key={job.id}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 + index * 0.1 }}
-                                whileHover={{ x: 2, transition: { duration: 0.2 } }}
-                              >
-                                <JobCard job={job} onApply={() => { }} />
-                              </motion.div>
+                            recommendedJobs.map((job) => (
+                              <JobCard key={job.id} job={job} onApply={() => { }} />
                             ))
                           ) : (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="text-center py-6"
-                            >
-                              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                <span className="text-xl">🔍</span>
+                            <div className="text-center py-8">
+                              <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center">
+                                <span className="text-lg">🔍</span>
                               </div>
-                              <p className="text-gray-400 text-xs">No recommendations yet.</p>
-                              <p className="text-gray-300 text-xs mt-1">Complete your profile to get personalized matches</p>
-                            </motion.div>
+                              <p className="text-sm text-[var(--color-text-secondary)]">No recommendations yet</p>
+                              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Complete your profile to get personalized matches</p>
+                            </div>
                           )}
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -296,27 +221,9 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
-      {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 w-full z-30">
+      <div className="lg:ml-64">
         <Footer />
       </div>
-      {/* Custom scrollbar styles */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #3b82f6, #6366f1);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #2563eb, #4f46e5);
-        }
-      `}</style>
     </div>
   );
 }

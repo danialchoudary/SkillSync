@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { register, login, verifyEmail, resendCode } from '../features/auth/authSlice';
@@ -12,11 +11,11 @@ import ConfirmPasswordField from './AuthForm/ConfirmPasswordField';
 import ErrorMessage from './AuthForm/ErrorMessage';
 import SubmitButton from './AuthForm/SubmitButton';
 import ForgotPasswordLink from './AuthForm/ForgotPasswordLink';
+import { KeyRound, Mail, ArrowLeft } from 'lucide-react';
 
 export default function AuthForm({ type = 'login', onSubmit, loading, error, onErrorClose }) {
   const dispatch = useDispatch();
   const [role, setRole] = useState('jobseeker');
-  // Steps: 1 = Register/Login Form, 2 = Verification Code
   const [step, setStep] = useState(1);
   const [verificationCode, setVerificationCode] = useState('');
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -60,11 +59,9 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     setPasswordError('');
 
     if (step === 2) {
-      // Verification Step
       const resultAction = await dispatch(verifyEmail({ email: registeredEmail, code: verificationCode }));
       if (verifyEmail.fulfilled.match(resultAction)) {
-        // Verification successful, user is usually logged in by the slice
-        // or we can redirect. The parent component usually checks 'user' state.
+        // Success
       }
       return;
     }
@@ -98,11 +95,10 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         };
       }
 
-      // Dispatch register manually here to intercept success for verification Flow
       const resultAction = await dispatch(register(data));
       if (register.fulfilled.match(resultAction)) {
         setRegisteredEmail(form.email);
-        setStep(2); // Move to verification step
+        setStep(2);
         if (resultAction.payload?.emailSent === false) {
           await dispatch(resendCode(form.email));
         }
@@ -115,7 +111,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       };
 
       const resultAction = await dispatch(login(data));
-      // Check if user is unverified
       if (login.rejected.match(resultAction) && resultAction.payload?.needsVerification) {
         setRegisteredEmail(form.email);
         setStep(2);
@@ -125,122 +120,121 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
   const handleResendCode = async () => {
     await dispatch(resendCode(registeredEmail));
-    // Optional: show a toast or message that code was sent
   };
 
   if (step === 2) {
     return (
-      <div className="text-center">
-        <h2 className="text-xl font-bold mb-2">Email Verification</h2>
-        <p className="mb-4 text-[13px] text-gray-600">Enter the 6-digit code sent to <strong>{registeredEmail}</strong></p>
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 bg-[var(--color-accent-bg)] text-[var(--color-accent)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Mail size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">Verify your email</h2>
+          <p className="text-sm font-medium text-[var(--color-text-secondary)]">We've sent a code to {registeredEmail}</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value)}
-            placeholder="000000"
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-[0.5em] font-mono"
-            maxLength={6}
-            required
-          />
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider ml-1">Verification Code</label>
+            <input
+              type="text"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="000 000"
+              className="w-full px-4 py-4 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl focus:ring-4 focus:ring-[var(--color-accent)]/10 focus:border-[var(--color-accent)] text-center text-3xl tracking-[0.25em] font-bold outline-none transition-all placeholder:text-[var(--color-text-tertiary)]/30"
+              maxLength={6}
+              required
+            />
+          </div>
           <SubmitButton loading={loading} text="Verify Account" />
           <ErrorMessage error={error} onClose={onErrorClose} />
         </form>
 
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="space-y-4 text-center">
           <button
             onClick={handleResendCode}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
             disabled={loading}
+            className="text-sm font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
           >
-            Resend Verification Code
+            Resend Code
           </button>
 
-          <button
-            onClick={() => setStep(1)}
-            className="text-xs text-indigo-600 hover:text-indigo-800"
-          >
-            Back to Registration
-          </button>
-
-          <Link
-            to="/login"
-            className="text-xs text-gray-600 hover:text-gray-800 underline"
-          >
-            Go to Login
-          </Link>
+          <div className="flex items-center justify-center gap-4 text-xs font-bold text-[var(--color-text-tertiary)]">
+            <button
+              onClick={() => setStep(1)}
+              className="flex items-center gap-1 hover:text-[var(--color-text-secondary)] transition-colors"
+            >
+              <ArrowLeft size={12} />
+              <span>Back to {type === 'login' ? 'Login' : 'Details'}</span>
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 w-full">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full animate-in fade-in duration-500">
       {/* Role Toggle for Register */}
       {type === 'register' && (
         <RoleToggle role={role} setRole={setRole} />
       )}
 
       {/* Dynamic Fields for Register */}
-      <AnimatePresence mode="wait">
-        {type === 'register' && (
-          <motion.div
-            key={role}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-3"
-          >
-            {role === 'jobseeker' ? (
-              <JobSeekerFields form={form} handleChange={handleChange} />
-            ) : (
-              <RecruiterFields form={form} handleChange={handleChange} />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Email and Password Fields centered in a grid or just stacked but tight */}
-      <div className={`${type === 'register' ? 'grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3' : 'space-y-3'}`}>
-        <EmailField value={form.email} onChange={handleChange} emailValid={emailValid} />
-        <PasswordField value={form.password} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
-        {type === 'register' && (
-          <ConfirmPasswordField value={form.confirmPassword} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
-        )}
-      </div>
-
-      {/* Error Messages */}
-      <div className="space-y-1">
-        <ErrorMessage error={passwordError} />
-        <ErrorMessage error={error} onClose={onErrorClose} />
-      </div>
-
-      {/* Remember Me Checkbox (Login only) */}
-      {type === 'login' && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              checked={form.rememberMe || false}
-              onChange={(e) => setForm({ ...form, rememberMe: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-              Remember me
-            </label>
-          </div>
+      {type === 'register' && (
+        <div className="space-y-4 py-2 border-y border-[var(--color-border)]/50">
+          {role === 'jobseeker' ? (
+            <JobSeekerFields form={form} handleChange={handleChange} />
+          ) : (
+            <RecruiterFields form={form} handleChange={handleChange} />
+          )}
         </div>
       )}
 
-      {/* Submit Button */}
-      <SubmitButton loading={loading} type={type} />
+      {/* Credentials Section */}
+      <div className="space-y-4">
+        {type === 'login' && (
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 bg-[var(--color-accent)] rounded-full"></div>
+            <h3 className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Account Access</h3>
+          </div>
+        )}
 
-      {/* Forgot Password Link (Login only) */}
-      {type === 'login' && <ForgotPasswordLink />}
+        <div className="space-y-4">
+          <EmailField value={form.email} onChange={handleChange} emailValid={emailValid} />
+          <PasswordField value={form.password} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
+          {type === 'register' && (
+            <ConfirmPasswordField value={form.confirmPassword} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
+          )}
+        </div>
+      </div>
+
+      {/* Logic for errors and keep signed in */}
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <ErrorMessage error={passwordError} />
+          <ErrorMessage error={error} onClose={onErrorClose} />
+        </div>
+
+        {type === 'login' && (
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                checked={form.rememberMe || false}
+                onChange={(e) => setForm({ ...form, rememberMe: e.target.checked })}
+                className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]/20 transition-all cursor-pointer"
+              />
+              <span className="text-xs font-bold text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">Keep me signed in</span>
+            </label>
+            <ForgotPasswordLink />
+          </div>
+        )}
+      </div>
+
+      <SubmitButton loading={loading} type={type} />
     </form>
   );
 }

@@ -7,10 +7,8 @@ import { getMe } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import RecruiterSidebar from '../components/RecruiterSidebar';
 import Topbar from '../components/Topbar';
-import Footer from '../components/Footer';
-import Toast from '../components/Toast';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { connectSocket, disconnectSocket, onEvent, offEvent, emitEvent, getSocket } from '../services/socketService';
+import { connectSocket, onEvent, offEvent, emitEvent, getSocket } from '../services/socketService';
 export default function Messages() {
   // For recruiter sidebar state
   const [activeSection, setActiveSection] = useState('messages');
@@ -26,7 +24,6 @@ export default function Messages() {
   const [search, setSearch] = useState('');
   const [userError, setUserError] = useState('');
   const [unread, setUnread] = useState({}); // { userId: count }
-  const [toast, setToast] = useState('');
   const prevMessagesRef = useRef([]);
   const [typingUsers, setTypingUsers] = useState({}); // { senderId: true }
 
@@ -287,54 +284,62 @@ export default function Messages() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
       <Topbar user={currentUser} />
-      <div className="flex flex-1 overflow-hidden">
-        {currentUser?.role === 'recruiter' ? (
-          <RecruiterSidebar
-            activeSection={activeSection}
-            onSectionChange={section => {
-              setActiveSection(section);
-              if (section === 'dashboard') {
-                navigate('/recruiter');
-              } else if (section === 'messages') {
-                navigate('/recruiter/message');
-              } else if (section === 'settings') {
-                // Stay on messages page, just update section
-              } else if (section === 'logout') {
-                // Logout handled in sidebar
-              } else {
-                navigate(`/recruiter/${section}`);
-              }
-            }}
-            unreadCount={Object.values(unread).reduce((a, b) => a + b, 0)}
-          />
-        ) : (
-          <Sidebar unreadCount={Object.values(unread).reduce((a, b) => a + b, 0)} />
-        )}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            {/* User list with search */}
-            <UserList
-              users={filteredUsers}
-              currentUser={currentUser}
-              selectedUser={selectedUser}
-              unread={unread}
-              search={search}
-              setSearch={setSearch}
-              onUserSelect={handleUserSelect}
-              userError={userError}
-              onRetryLoadUsers={handleRetryLoadUsers}
+
+      <div className="relative flex-1 flex">
+        <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
+          {currentUser?.role === 'recruiter' ? (
+            <RecruiterSidebar
+              activeSection={activeSection}
+              onSectionChange={section => {
+                setActiveSection(section);
+                if (section === 'dashboard') {
+                  navigate('/recruiter');
+                } else if (section === 'messages') {
+                  navigate('/recruiter/message');
+                } else if (section === 'settings') {
+                  // Stay on messages page, just update section
+                } else if (section === 'logout') {
+                  // Logout handled in sidebar
+                } else {
+                  navigate(`/recruiter/${section}`);
+                }
+              }}
+              unreadCount={Object.values(unread).reduce((a, b) => a + b, 0)}
             />
+          ) : (
+            <Sidebar unreadCount={Object.values(unread).reduce((a, b) => a + b, 0)} />
+          )}
+        </div>
+
+        <main className="flex-1 lg:ml-64 pt-14 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            {/* User list with search */}
+            <div className={`${selectedUser ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'} w-full lg:w-auto`}>
+              <UserList
+                users={filteredUsers}
+                currentUser={currentUser}
+                selectedUser={selectedUser}
+                unread={unread}
+                search={search}
+                setSearch={setSearch}
+                onUserSelect={handleUserSelect}
+                userError={userError}
+                onRetryLoadUsers={handleRetryLoadUsers}
+              />
+            </div>
             {/* Chat window */}
-            <div className="flex-1 flex flex-col relative">
-              {/* Debug/Status Indicator */}
-              <div className="absolute top-2 right-4 z-50 flex items-center gap-2 bg-white/80 px-2 py-1 rounded-full text-xs shadow-sm backdrop-blur-sm">
-                <div className={`w-2 h-2 rounded-full ${socketReady ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
-                <span className="text-gray-600 font-medium">
-                  {socketReady ? 'Real-time Connected' : 'Connecting...'}
-                </span>
-              </div>
+            <div className={`${selectedUser ? 'flex' : 'hidden lg:flex'} flex-1 flex-col relative`}>
+              {selectedUser && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="lg:hidden absolute left-3 top-3 z-50 px-3 py-1.5 rounded-lg bg-white/90 border border-gray-200 text-xs font-semibold text-gray-700 shadow-sm"
+                >
+                  Back
+                </button>
+              )}
 
               <ChatWindow
                 selectedUser={selectedUser}
@@ -352,8 +357,6 @@ export default function Messages() {
           </div>
         </main>
       </div>
-      {/* No toast for new message */}
-      <Footer />
     </div>
   );
 }

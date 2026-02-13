@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaUser, FaBuilding } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useDispatch } from 'react-redux';
+import { logout } from '../features/auth/authSlice';
 import { getImageUrl } from '../utils/urlHelper';
 
 export default function Topbar({ user = {}, notifications }) {
   const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState(false);
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isRecruiter = user?.role === 'recruiter';
+  const isAdmin = user?.role === 'admin';
 
   let imageUrl, name;
   if (isRecruiter) {
@@ -19,82 +24,165 @@ export default function Topbar({ user = {}, notifications }) {
   }
 
   const handleProfileClick = () => {
-    console.log('Profile clicked. isRecruiter:', isRecruiter);
     navigate(isRecruiter ? '/recruiter/profile' : '/profile');
   };
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const handleMobileNavigate = (path) => {
+    setMobileMenuOpen(false);
+    navigate(path);
+  };
+
+  const handleLogout = async () => {
+    setMobileMenuOpen(false);
+    await dispatch(logout());
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/login');
+  };
+
+  const mobileLinks = isRecruiter
+    ? [
+      { label: 'Dashboard', path: '/recruiter' },
+      { label: 'Post Job', path: '/recruiter/post-job' },
+      { label: 'My Jobs', path: '/recruiter/myjobs' },
+      { label: 'Applicants', path: '/recruiter/applicants' },
+      { label: 'Messages', path: '/recruiter/message' },
+      { label: 'Profile', path: '/recruiter/profile' },
+    ]
+    : isAdmin
+      ? [
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'Jobs', path: '/jobs' },
+        { label: 'Messages', path: '/messages' },
+        { label: 'Profile', path: '/profile' },
+      ]
+      : [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Jobs', path: '/jobs' },
+        { label: 'Saved Jobs', path: '/saved-jobs' },
+        { label: 'My Applications', path: '/my-applications' },
+        { label: 'Messages', path: '/messages' },
+        { label: 'Profile', path: '/profile' },
+      ];
+
   return (
-    <motion.header
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="sticky top-0 z-50 flex items-center justify-between bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 px-6 py-2"
-    >
-      <div className="flex-1" />
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-[var(--color-surface)]/95 backdrop-blur-md border-b border-[var(--color-border)] px-4 sm:px-6 h-14">
+        {/* Left: Hamburger (mobile) + Logo */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span className="text-base font-semibold tracking-tight text-[var(--color-text-primary)]">
+            SkillSync
+          </span>
+        </div>
 
-      <motion.div
-        className="flex items-center gap-3 justify-end"
-        whileHover={{ scale: 1.01 }}
-        transition={{ duration: 0.2 }}
-      >
-        <motion.button
-          className="relative font-semibold text-sm text-gray-700 focus:outline-none transition-all duration-300 ease-out hover:text-blue-600 px-2 py-1 rounded-md group"
-          onClick={handleProfileClick}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          whileHover={{ x: -2 }}
-          whileTap={{ scale: 0.98 }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          {name}
-          <motion.span
-            className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: isHovered ? '100%' : 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-          />
-        </motion.button>
+        {/* Right: User profile */}
+        <div className="flex items-center gap-3">
+          <button
+            className="hidden sm:block text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer bg-transparent border-none"
+            onClick={handleProfileClick}
+          >
+            {name}
+          </button>
 
-        <motion.button
-          className="relative w-10 h-10 rounded-full flex items-center justify-center focus:outline-none group overflow-hidden ring-2 ring-transparent hover:ring-blue-500/30 transition-all duration-300"
-          onClick={handleProfileClick}
-          whileHover={{ scale: 1.08, rotate: 5 }}
-          whileTap={{ scale: 0.95 }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          {imageUrl ? (
-            <motion.div
-              className="relative w-full h-full"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            >
+          <button
+            className="relative w-9 h-9 rounded-full flex items-center justify-center overflow-hidden bg-transparent border-none cursor-pointer ring-1 ring-[var(--color-border)] hover:ring-[var(--color-accent)] transition-all"
+            onClick={handleProfileClick}
+          >
+            {imageUrl ? (
               <img
                 src={imageUrl}
                 alt="avatar"
-                className="w-full h-full rounded-full object-cover shadow-md group-hover:shadow-lg transition-shadow duration-300"
+                className="w-full h-full rounded-full object-cover"
               />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/10 group-hover:to-blue-600/10 transition-all duration-300" />
-            </motion.div>
-          ) : (
-            <motion.span
-              className="w-full h-full rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-500 group-hover:from-blue-50 group-hover:to-blue-100 group-hover:text-blue-600 transition-all duration-300 shadow-sm group-hover:shadow-md"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              {isRecruiter ? <FaBuilding size={18} /> : <FaUser size={18} />}
-            </motion.span>
-          )}
+            ) : (
+              <span className="w-full h-full rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)]">
+                {isRecruiter ? <FaBuilding size={15} /> : <FaUser size={15} />}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
 
-          {/* Pulse effect on hover */}
-          <motion.div
-            className="absolute inset-0 rounded-full bg-blue-400/20"
-            initial={{ scale: 1, opacity: 0 }}
-            whileHover={{ scale: 1.4, opacity: [0, 0.5, 0] }}
-            transition={{ duration: 0.6 }}
-          />
-        </motion.button>
-      </motion.div>
-    </motion.header>
+      {/* Mobile menu drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="fixed top-0 left-0 bottom-0 z-[60] w-72 max-w-[85vw] bg-[var(--color-surface)] border-r border-[var(--color-border)] lg:hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 h-14 border-b border-[var(--color-border)]">
+                <span className="text-base font-semibold text-[var(--color-text-primary)]">SkillSync</span>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <nav className="flex-1 overflow-y-auto py-2 px-3">
+                {mobileLinks.map((link) => {
+                  const active = location.pathname === link.path;
+                  return (
+                    <button
+                      key={link.path}
+                      type="button"
+                      onClick={() => handleMobileNavigate(link.path)}
+                      className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${active
+                        ? 'bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] font-semibold'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                    >
+                      {link.label}
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="p-3 border-t border-[var(--color-border)]">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-danger-bg)] text-[var(--color-danger)] hover:bg-red-100 text-sm font-medium transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
