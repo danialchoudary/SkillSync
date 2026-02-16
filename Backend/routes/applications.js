@@ -3,6 +3,7 @@ import JobApplication from '../models/JobApplication.js';
 import Job from '../models/Job.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { analyzeMatch } from '../services/aiService.js';
+import { isValidApplicationStatus, normalizeApplicationStatus } from '../utils/applicationStatus.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -15,6 +16,14 @@ const upload = multer({
 });
 
 const router = express.Router();
+
+function serializeApplication(applicationDoc) {
+  const application = applicationDoc.toObject ? applicationDoc.toObject() : applicationDoc;
+  return {
+    ...application,
+    status: normalizeApplicationStatus(application.status),
+  };
+}
 
 // GET /job/:jobId - get all applicants for a job (recruiter only)
 router.get('/job/:jobId', authMiddleware, async (req, res) => {
@@ -29,7 +38,7 @@ router.get('/job/:jobId', authMiddleware, async (req, res) => {
     const applications = await JobApplication.find({ jobId })
       .populate('jobSeekerId', 'name email resumeLink profilePicture');
     console.log('[GET /applications/job/:jobId] found applications:', applications);
-    res.json(applications);
+    res.json(applications.map(serializeApplication));
   } catch (err) {
     console.error('Fetch applicants error:', err);
     res.status(500).json({ error: 'Failed to fetch applicants. Please try again.' });
@@ -45,17 +54,17 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
     }
     const appId = req.params.id;
     const { status } = req.body;
-    if (!['applied', 'screening', 'interviewing', 'hired', 'rejected'].includes(status)) {
+    if (!isValidApplicationStatus(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
     const application = await JobApplication.findById(appId);
     if (!application) {
       return res.status(404).json({ error: 'Application not found.' });
     }
-    application.status = status;
+    application.status = normalizeApplicationStatus(status);
     await application.save();
     console.log('[PATCH /applications/:id/status] updated application:', application);
-    res.json(application);
+    res.json(serializeApplication(application));
   } catch (err) {
     console.error('Update application status error:', err);
     res.status(500).json({ error: 'Failed to update application status. Please try again.' });
@@ -117,7 +126,7 @@ router.get('/mine', authMiddleware, jobSeekerOnly, async (req, res) => {
         path: 'jobId',
         select: 'title company companyLogo', // Include companyLogo in the populated fields
       });
-    res.json(applications);
+    res.json(applications.map(serializeApplication));
   } catch (err) {
     console.error('Fetch applications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications. Please try again.' });

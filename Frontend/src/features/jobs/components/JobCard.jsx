@@ -3,8 +3,9 @@ import ApplyModal from './ApplyModal';
 import { createPortal } from 'react-dom';
 import { applyForJob } from '../services/jobApi';
 import Toast from '../../../components/Toast';
-import { FaBuilding, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaBuilding, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark, FaClock, FaCheckCircle, FaSearch } from 'react-icons/fa';
 import { getImageUrl } from '../../../utils/urlHelper';
+import { getApplicationStatusLabel, normalizeApplicationStatus } from '../../../utils/applicationStatus';
 
 export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave, onUnsave, user }) {
   const [showModal, setShowModal] = useState(false);
@@ -12,6 +13,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
   const [saving, setSaving] = useState(false);
   const [applied, setApplied] = useState(job.applied);
   const isApplied = typeof job.applied !== 'undefined' ? job.applied || applied : applied;
+  const normalizedJobStatus = normalizeApplicationStatus(job.status);
   const isJobSeeker = user?.role === 'jobseeker';
   const isSavedSection = saved && onDelete;
 
@@ -36,23 +38,26 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
 
   const getStatusBadge = (status) => {
     const styles = {
-      accepted: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
+      applied: 'bg-[var(--color-accent-bg)] text-[var(--color-accent)]',
+      screening: 'bg-[#EEF7FF] text-[#0B79D0]',
+      interview: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
+      hired: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
       rejected: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)]',
-      pending: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
     };
     return styles[status] || 'bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]';
   };
 
   return (
-    <div className="relative bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 hover:border-gray-300 transition-colors h-full flex flex-col">
+    <div className="ui-card-hover relative bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 h-full flex flex-col">
 
       {/* Status Badge */}
       {isApplied && (
         <div className="flex justify-end mb-2">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${getStatusBadge(job.status)}`}>
-            {job.status === 'accepted' && <FaCheckCircle className="text-[10px]" />}
-            {job.status === 'pending' && <FaClock className="text-[10px]" />}
-            {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Applied'}
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${getStatusBadge(normalizedJobStatus)}`}>
+            {normalizedJobStatus === 'hired' && <FaCheckCircle className="text-[10px]" />}
+            {normalizedJobStatus === 'screening' && <FaSearch className="text-[10px]" />}
+            {(normalizedJobStatus === 'applied' || normalizedJobStatus === 'interview') && <FaClock className="text-[10px]" />}
+            {getApplicationStatusLabel(normalizedJobStatus)}
           </span>
         </div>
       )}

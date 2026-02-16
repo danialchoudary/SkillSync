@@ -2,7 +2,7 @@ import React from 'react';
 import UserListItem from './UserListItem';
 
 export default function UserList({
-  users, currentUser, selectedUser, unread, search, setSearch, onUserSelect, userError, onRetryLoadUsers
+  users, selectedUser, unread, isUserOnline, search, setSearch, onUserSelect, userError, onRetryLoadUsers
 }) {
   return (
     <div className="w-full lg:w-[360px] xl:w-[400px] 2xl:w-[430px] lg:flex-shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col h-full">
@@ -73,9 +73,9 @@ export default function UserList({
                   <li key={user._id || user.email || idx}>
                     <UserListItem
                       user={user}
-                      currentUser={currentUser}
                       selectedUser={selectedUser}
                       unread={unread[user._id]}
+                      isOnline={isUserOnline?.(user._id)}
                       onUserSelect={onUserSelect}
                     />
                   </li>

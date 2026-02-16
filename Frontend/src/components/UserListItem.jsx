@@ -2,7 +2,7 @@ import React from 'react';
 import { FaUser, FaBuilding } from 'react-icons/fa';
 import { getImageUrl } from '../utils/urlHelper';
 
-export default function UserListItem({ user, currentUser, selectedUser, unread, onUserSelect }) {
+export default function UserListItem({ user, selectedUser, unread, isOnline, onUserSelect }) {
   const isSelected = selectedUser && selectedUser._id === user._id;
 
   let avatar = null;
@@ -15,6 +15,9 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
             alt="logo"
             className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--color-border)]"
           />
+          {isOnline && (
+            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
+          )}
           <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[var(--color-accent)] rounded-full border-2 border-[var(--color-surface)] flex items-center justify-center">
             <FaBuilding className="text-white text-[6px]" />
           </div>
@@ -22,8 +25,13 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
       );
     } else {
       avatar = (
-        <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-accent-bg)] rounded-full">
-          <FaBuilding className="text-[var(--color-accent)] text-sm" />
+        <div className="relative w-10 h-10">
+          <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-accent-bg)] rounded-full">
+            <FaBuilding className="text-[var(--color-accent)] text-sm" />
+          </div>
+          {isOnline && (
+            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
+          )}
         </div>
       );
     }
@@ -36,13 +44,20 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
             alt="avatar"
             className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--color-border)]"
           />
-          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
+          {isOnline && (
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
+          )}
         </div>
       );
     } else {
       avatar = (
-        <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-full">
-          <FaUser className="text-[var(--color-text-tertiary)] text-sm" />
+        <div className="relative w-10 h-10">
+          <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-full">
+            <FaUser className="text-[var(--color-text-tertiary)] text-sm" />
+          </div>
+          {isOnline && (
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-success)] rounded-full border-2 border-[var(--color-surface)]"></div>
+          )}
         </div>
       );
     }
@@ -96,6 +111,9 @@ export default function UserListItem({ user, currentUser, selectedUser, unread, 
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-accent-bg)] text-[var(--color-accent)]">
                 Company
               </span>
+            )}
+            {isOnline && (
+              <span className="text-[10px] font-medium text-[var(--color-success)]">Active now</span>
             )}
           </div>
         </div>

@@ -148,3 +148,20 @@ test('PATCH /applications/:id/status validates status before DB update', async (
     },
   );
 });
+
+test('GET /dashboard/jobseeker-analytics blocks recruiter accounts', async () => {
+  await withMockedUser(
+    { _id: 'recruiter-3', id: 'recruiter-3', role: 'recruiter' },
+    async () => {
+      const token = createBearerToken('recruiter-3');
+      const { response, body } = await request('/dashboard/jobseeker-analytics', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      assert.equal(response.status, 403);
+      assert.equal(body.error, 'Access denied');
+    },
+  );
+});

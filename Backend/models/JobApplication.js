@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { APPLICATION_STATUSES, normalizeApplicationStatus } from '../utils/applicationStatus.js';
 
 const jobApplicationSchema = new mongoose.Schema({
   jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: true },
@@ -7,8 +8,9 @@ const jobApplicationSchema = new mongoose.Schema({
   coverLetter: { type: String },
   status: {
     type: String,
-    enum: ['applied', 'screening', 'interviewing', 'hired', 'rejected'],
-    default: 'applied'
+    enum: APPLICATION_STATUSES,
+    default: 'applied',
+    set: normalizeApplicationStatus,
   },
   appliedAt: { type: Date, default: Date.now },
 });

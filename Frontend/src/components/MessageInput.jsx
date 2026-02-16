@@ -12,7 +12,10 @@ export default function MessageInput({ input, setInput, sending, selectedUser, c
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
 
-  const isDisabled = sending || isUploading || !selectedUser || !currentUser || (selectedUser._id !== currentUser._id && !selectedUser);
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const selectedUserId = selectedUser?._id || selectedUser?.id;
+  const isSelfConversation = Boolean(currentUserId && selectedUserId && currentUserId === selectedUserId);
+  const isDisabled = sending || isUploading || !selectedUser || !currentUserId || isSelfConversation;
   const canSend = !isDisabled && (input?.trim() || selectedFile);
 
   const handleInputChange = (e) => {

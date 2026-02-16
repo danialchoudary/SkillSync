@@ -123,11 +123,11 @@ function RecruiterPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col overflow-x-hidden">
       <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'success' })} />
       <Topbar user={user} />
 
-      <div className="relative flex-1 flex">
+      <div className="relative flex-1 flex min-w-0 overflow-x-hidden">
         <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
           <RecruiterSidebar
             activeSection={activeSection}
@@ -136,8 +136,8 @@ function RecruiterPanel() {
           />
         </div>
 
-        <main className="flex-1 lg:ml-64 pt-14 flex flex-col">
-          <div className="p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+        <main className="flex-1 lg:flex-none lg:w-[calc(100%-16rem)] lg:ml-64 pt-14 flex flex-col min-w-0 overflow-x-hidden">
+          <div className="p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden">
             {activeSection === 'dashboard' && <RecruiterDashboard />}
             {activeSection === 'post-job' && <JobForm onPost={handlePostJob} />}
             {activeSection === 'myjobs' && (

@@ -3,6 +3,32 @@ import { socketAuthMiddleware } from './middleware/socketAuth.js';
 import { registerMessageHandlers } from './handlers/messageHandler.js';
 
 let io = null;
+const userConnectionCounts = new Map();
+const socketToUserId = new Map();
+
+function markUserConnected(userId) {
+    const nextCount = (userConnectionCounts.get(userId) || 0) + 1;
+    userConnectionCounts.set(userId, nextCount);
+
+    if (nextCount === 1) {
+        io.emit('user_online', { userId });
+    }
+}
+
+function markUserDisconnected(userId) {
+    const currentCount = userConnectionCounts.get(userId) || 0;
+    if (currentCount <= 1) {
+        userConnectionCounts.delete(userId);
+        io.emit('user_offline', { userId });
+        return;
+    }
+
+    userConnectionCounts.set(userId, currentCount - 1);
+}
+
+function getOnlineUserIds() {
+    return Array.from(userConnectionCounts.keys());
+}
 
 /**
  * Initializes the Socket.IO server.
@@ -28,20 +54,29 @@ export function initSocket(httpServer) {
     io.on('connection', (socket) => {
         try {
             console.log(`[Socket] User connected: ${socket.user._id} (${socket.user.name || socket.user.email})`);
+            const userId = socket.user._id.toString();
 
             // Each user automatically joins a private room with their own ID.
-            socket.join(socket.user._id.toString());
+            socket.join(userId);
+            socketToUserId.set(socket.id, userId);
+            markUserConnected(userId);
+
+            // Send online snapshot to the just-connected client.
+            socket.emit('online_users', { userIds: getOnlineUserIds() });
+
+            socket.on('request_online_users', () => {
+                socket.emit('online_users', { userIds: getOnlineUserIds() });
+            });
 
             // Register event handlers
             registerMessageHandlers(socket, io);
 
-            // User online presence
-            io.emit('user_online', { userId: socket.user._id.toString() });
-
             socket.on('disconnect', (reason) => {
                 try {
                     console.log(`[Socket] User disconnected: ${socket.user._id}, reason: ${reason}`);
-                    io.emit('user_offline', { userId: socket.user._id.toString() });
+                    const disconnectedUserId = socketToUserId.get(socket.id) || socket.user._id.toString();
+                    socketToUserId.delete(socket.id);
+                    markUserDisconnected(disconnectedUserId);
                 } catch (err) {
                     console.error('[Socket] Disconnect error:', err);
                 }

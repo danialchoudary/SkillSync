@@ -1,4 +1,10 @@
 import Message from '../../models/Message.js';
+import User from '../../models/User.js';
+import mongoose from 'mongoose';
+
+function isValidObjectId(value) {
+    return mongoose.Types.ObjectId.isValid(value);
+}
 
 /**
  * Registers message-related event handlers on a socket connection.
@@ -31,16 +37,31 @@ export function registerMessageHandlers(socket, io) {
         try {
             const { receiverId, content, messageType, fileUrl, fileName, fileType, fileSize } = payload;
             const senderId = socket.user._id.toString();
+            const normalizedReceiverId = String(receiverId || '').trim();
+            const normalizedContent = typeof content === 'string' ? content.trim() : '';
 
-            if (!receiverId || (!content && messageType !== 'file')) {
+            if (!normalizedReceiverId || (!normalizedContent && messageType !== 'file')) {
                 return callback?.({ error: 'Missing receiverId or content' });
+            }
+
+            if (!isValidObjectId(normalizedReceiverId)) {
+                return callback?.({ error: 'Invalid receiverId' });
+            }
+
+            if (normalizedReceiverId === senderId) {
+                return callback?.({ error: 'You cannot send messages to yourself' });
+            }
+
+            const receiverExists = await User.exists({ _id: normalizedReceiverId });
+            if (!receiverExists) {
+                return callback?.({ error: 'Receiver not found' });
             }
 
             // Persist message - use correct field names from Message model
             const message = new Message({
                 senderId: senderId,
-                receiverId: receiverId,
-                content: (content || '').trim(),
+                receiverId: normalizedReceiverId,
+                content: normalizedContent,
                 messageType: messageType || 'text',
                 fileUrl,
                 fileName,
@@ -55,7 +76,7 @@ export function registerMessageHandlers(socket, io) {
                 .populate('receiverId', 'name profilePicture');
 
             // Emit to both sender and receiver using their user IDs as room names
-            io.to(receiverId).emit('receive_message', populatedMessage);
+            io.to(normalizedReceiverId).emit('receive_message', populatedMessage);
             io.to(senderId).emit('receive_message', populatedMessage);
 
             callback?.({ success: true, message: populatedMessage });
@@ -67,8 +88,12 @@ export function registerMessageHandlers(socket, io) {
     });
 
     // Typing indicator
-    socket.on('typing', ({ receiverId, isTyping }) => {
-        io.to(receiverId).emit('user_typing', {
+    socket.on('typing', ({ receiverId, isTyping } = {}) => {
+        const normalizedReceiverId = String(receiverId || '').trim();
+        if (!isValidObjectId(normalizedReceiverId)) return;
+        if (normalizedReceiverId === socket.user._id.toString()) return;
+
+        io.to(normalizedReceiverId).emit('user_typing', {
             senderId: socket.user._id.toString(),
             isTyping,
         });

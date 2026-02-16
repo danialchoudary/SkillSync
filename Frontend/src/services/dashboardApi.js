@@ -9,3 +9,8 @@ export const getRecentApplicants = async () => {
     const response = await api.get('/dashboard/recent-applicants');
     return response.data;
 };
+
+export const getJobSeekerAnalytics = async () => {
+    const response = await api.get('/dashboard/jobseeker-analytics');
+    return response.data;
+};

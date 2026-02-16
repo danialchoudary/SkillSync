@@ -14,6 +14,7 @@ export default function JobForm({ onPost }) {
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
   const [isLoading, setIsLoading] = useState(false);
+  const [submitState, setSubmitState] = useState('');
 
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -28,13 +29,21 @@ export default function JobForm({ onPost }) {
         .then(() => {
           setToast('Job posted successfully!');
           setToastType('success');
+          setSubmitState('success');
           setForm({ title: '', company: '', description: '', location: '', salary: '', skills: '', experience: '' });
-          setTimeout(() => setToast(null), 3000);
+          setTimeout(() => {
+            setToast(null);
+            setSubmitState('');
+          }, 3000);
         })
         .catch(() => {
           setToast('Failed to post job. Please try again.');
           setToastType('error');
-          setTimeout(() => setToast(null), 3000);
+          setSubmitState('error');
+          setTimeout(() => {
+            setToast(null);
+            setSubmitState('');
+          }, 3000);
         })
         .finally(() => setIsLoading(false));
     }
@@ -44,15 +53,15 @@ export default function JobForm({ onPost }) {
     <div className="w-full bg-[var(--color-bg)] px-4 py-8 sm:py-12">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="fixed top-6 right-6 z-50 max-w-sm ui-toast-enter">
           <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-sm ${toastType === 'success'
               ? 'bg-[var(--color-success-bg)] border-[var(--color-success)]/10 text-[var(--color-success)]'
               : 'bg-[var(--color-danger-bg)] border-[var(--color-danger)]/10 text-[var(--color-danger)]'
-            }`}>
+            } ${toastType === 'error' ? 'ui-error-shake' : ''}`}>
             {toastType === 'success' ? (
-              <CheckCircle size={18} className="flex-shrink-0" />
+              <CheckCircle size={18} className="flex-shrink-0 ui-success-pop" />
             ) : (
-              <AlertCircle size={18} className="flex-shrink-0" />
+              <AlertCircle size={18} className="flex-shrink-0 ui-error-shake" />
             )}
             <p className="text-sm font-bold">{toast}</p>
           </div>
@@ -74,7 +83,13 @@ export default function JobForm({ onPost }) {
         {/* Form Container */}
         <form
           onSubmit={handleSubmit}
-          className="bg-[var(--color-surface)] rounded-2xl shadow-[var(--shadow-sm)] p-6 sm:p-10 border border-[var(--color-border)] space-y-6"
+          className={`bg-[var(--color-surface)] rounded-2xl shadow-[var(--shadow-sm)] p-6 sm:p-10 border border-[var(--color-border)] space-y-6 ${
+            submitState === 'success'
+              ? 'ui-success-flash'
+              : submitState === 'error'
+                ? 'ui-error-shake'
+                : ''
+          }`}
         >
           {/* Row 1: Title and Company */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

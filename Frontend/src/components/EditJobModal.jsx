@@ -39,6 +39,7 @@ export default function EditJobModal({ job, open, onClose, onUpdate, loading }) 
         experience: ''
     });
     const [errors, setErrors] = useState({});
+    const [submitState, setSubmitState] = useState('');
 
     useEffect(() => {
         if (job && open) {
@@ -52,6 +53,7 @@ export default function EditJobModal({ job, open, onClose, onUpdate, loading }) 
                 experience: job.experience || ''
             });
             setErrors({});
+            setSubmitState('');
         }
     }, [job, open]);
 
@@ -72,12 +74,17 @@ export default function EditJobModal({ job, open, onClose, onUpdate, loading }) 
         if (!formData.salary.trim()) newErrors.salary = 'Salary range is required';
 
         setErrors(newErrors);
+        if (Object.keys(newErrors).length > 0) {
+            setSubmitState('error');
+            setTimeout(() => setSubmitState(''), 350);
+        }
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (validateForm()) {
+            setSubmitState('success');
             onUpdate(formData);
         }
     };
@@ -118,7 +125,11 @@ export default function EditJobModal({ job, open, onClose, onUpdate, loading }) 
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
-                    <form id="edit-job-form" onSubmit={handleSubmit} className="space-y-5">
+                    <form
+                        id="edit-job-form"
+                        onSubmit={handleSubmit}
+                        className={`space-y-5 ${submitState === 'success' ? 'ui-success-flash' : submitState === 'error' ? 'ui-error-shake' : ''}`}
+                    >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <FormField label="Job Title" icon={Briefcase} error={errors.title}>
                                 <input

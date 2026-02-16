@@ -81,6 +81,7 @@ router.get('/', authMiddleware, async (req, res) => {
     let resumeUrl = user.resumeLink;
     // We don't check for existence on Cloudinary for every request to save performance
     res.json({
+      _id: user._id,
       id: user._id,
       name: user.name,
       email: user.email,
@@ -158,6 +159,7 @@ router.patch('/', userUpdateLimiter, authMiddleware, validateUserUpdate, async (
       parsedExperience = { years: 0, summary: '' };
     }
     res.json({
+      _id: user._id,
       id: user._id,
       name: user.name,
       email: user.email,

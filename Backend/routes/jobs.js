@@ -2,6 +2,7 @@ import express from 'express';
 import Job from '../models/Job.js';
 import JobApplication from '../models/JobApplication.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { normalizeApplicationStatus } from '../utils/applicationStatus.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -77,7 +78,7 @@ import User from '../models/User.js';
 router.get('/saved', authMiddleware, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const user = await User.findById(req.user._id).populate({ path: 'savedJobs', populate: { path: 'recruiter', select: 'companyLogo' } });
+    const user = await User.findById(req.user._id).populate({ path: 'savedJobs', populate: { path: 'recruiter', select: 'companyLogo industry' } });
     // Logging for debugging
     console.log('Populated savedJobs:', user.savedJobs);
     const userStatusMap = {};
@@ -85,7 +86,7 @@ router.get('/saved', authMiddleware, async (req, res) => {
       const userApplications = await JobApplication.find({ jobSeekerId: req.user._id });
       userApplications.forEach(app => {
         if (app.jobId) {
-          userStatusMap[app.jobId.toString()] = app.status;
+          userStatusMap[app.jobId.toString()] = normalizeApplicationStatus(app.status);
         }
       });
     }
@@ -97,6 +98,7 @@ router.get('/saved', authMiddleware, async (req, res) => {
       return {
         ...jobObj,
         companyLogo: jobObj.recruiter?.companyLogo || '',
+        industry: jobObj.industry || jobObj.recruiter?.industry || '',
         applied: !!userStatusMap[id.toString()],
         status: userStatusMap[id.toString()] || null
       };
@@ -137,14 +139,14 @@ router.get('/', async (req, res) => {
     const userId = getUserIdFromRequest(req);
     const jobs = await Job.find()
       .sort({ createdAt: -1 })
-      .populate('recruiter', 'companyLogo');
+      .populate('recruiter', 'companyLogo industry');
 
     let userStatusMap = {};
     if (userId) {
       const userApplications = await JobApplication.find({ jobSeekerId: userId });
       userApplications.forEach(app => {
         if (app.jobId) {
-          userStatusMap[app.jobId.toString()] = app.status;
+          userStatusMap[app.jobId.toString()] = normalizeApplicationStatus(app.status);
         }
       });
     }
@@ -156,6 +158,7 @@ router.get('/', async (req, res) => {
       return {
         ...jobObj,
         companyLogo: jobObj.recruiter?.companyLogo || '',
+        industry: jobObj.industry || jobObj.recruiter?.industry || '',
         applied: !!userStatusMap[id.toString()],
         status: userStatusMap[id.toString()] || null
       };
@@ -172,10 +175,11 @@ router.get('/my', authMiddleware, async (req, res) => {
   try {
     const jobs = await Job.find({ recruiter: req.user.id })
       .sort({ createdAt: -1 })
-      .populate('recruiter', 'companyLogo');
+      .populate('recruiter', 'companyLogo industry');
     const jobsWithLogo = jobs.map(job => ({
       ...job.toObject(),
       companyLogo: job.recruiter?.companyLogo || '',
+      industry: job.industry || job.recruiter?.industry || '',
     }));
     res.json(jobsWithLogo);
   } catch (err) {

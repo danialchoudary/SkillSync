@@ -1,13 +1,21 @@
 import React from 'react';
 
+function getId(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (value._id) return String(value._id);
+    if (value.id) return String(value.id);
+  }
+  return String(value);
+}
+
 export default function MessageBubble({ msg, currentUser }) {
   if (!msg || typeof msg !== 'object' || !('senderId' in msg)) return null;
 
-  const isMine = currentUser && (
-    msg.senderId === currentUser._id ||
-    msg.senderId === currentUser.id ||
-    (msg.senderId && msg.senderId.toString && msg.senderId.toString() === currentUser._id)
-  );
+  const currentUserId = getId(currentUser?._id || currentUser?.id);
+  const messageSenderId = getId(msg.senderId);
+  const isMine = Boolean(currentUserId && messageSenderId && currentUserId === messageSenderId);
 
   const formatTime = () => {
     if (!msg.createdAt) return '';

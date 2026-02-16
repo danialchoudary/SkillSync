@@ -61,7 +61,7 @@ export default function SavedJobs() {
         <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
           <Sidebar activeSection="saved" onSectionChange={() => { }} />
         </div>
-        <main className="flex-1 lg:ml-64 pt-14 p-4 sm:p-6 lg:p-8 scroll-smooth">
+        <main className="flex-1 lg:ml-64 w-full max-w-7xl mx-auto pt-20 px-4 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8 scroll-smooth">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">

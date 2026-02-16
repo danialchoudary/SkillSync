@@ -1,107 +1,202 @@
-import React, { useEffect, useState } from 'react';
-import { FaUser, FaBuilding } from 'react-icons/fa';
-import Sidebar from '../components/Sidebar';
+import { useEffect, useMemo, useState } from 'react';
+import { FaBuilding, FaBookmark, FaBullseye, FaChartLine, FaUser } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import { AnimatePresence, motion } from 'framer-motion';
+import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
-import JobCard from '../features/jobs/components/JobCard';
 import StatsCard from '../components/StatsCard';
-import ActivityList from '../components/ActivityList';
 import ProfileCompletionCard from '../components/ProfileCompletionCard';
+import ApplicationTrendsChart from '../components/ApplicationTrendsChart';
+import JobStatusChart from '../components/JobStatusChart';
 import Footer from '../components/Footer';
 import { getMe } from '../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { getJobSeekerAnalytics } from '../services/dashboardApi';
 import { getImageUrl } from '../utils/urlHelper';
+import { APPLICATION_STATUS_LABELS } from '../utils/applicationStatus';
+
+const DEFAULT_ANALYTICS = {
+  overview: {
+    totalApplications: 0,
+    savedJobs: 0,
+    activeApplications: 0,
+    respondedApplications: 0,
+    responseRate: 0,
+    interviewRate: 0,
+    successRate: 0,
+  },
+  trends: {
+    labels: [],
+    data: [],
+  },
+  statusCounts: {
+    applied: 0,
+    screening: 0,
+    interview: 0,
+    hired: 0,
+    rejected: 0,
+  },
+  recentApplications: [],
+};
+
+const STATUS_BADGES = {
+  applied: 'bg-[var(--color-accent-bg)] text-[var(--color-accent)]',
+  screening: 'bg-[#EEF7FF] text-[#0B79D0]',
+  interview: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
+  hired: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
+  rejected: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)]',
+};
+
+function normalizeAnalytics(payload) {
+  return {
+    ...DEFAULT_ANALYTICS,
+    ...payload,
+    overview: {
+      ...DEFAULT_ANALYTICS.overview,
+      ...(payload?.overview || {}),
+    },
+    trends: {
+      ...DEFAULT_ANALYTICS.trends,
+      ...(payload?.trends || {}),
+      labels: Array.isArray(payload?.trends?.labels) ? payload.trends.labels : [],
+      data: Array.isArray(payload?.trends?.data) ? payload.trends.data : [],
+    },
+    statusCounts: {
+      ...DEFAULT_ANALYTICS.statusCounts,
+      ...(payload?.statusCounts || {}),
+    },
+    recentApplications: Array.isArray(payload?.recentApplications) ? payload.recentApplications : [],
+  };
+}
+
+function getProfileCompletionAndMissing(user) {
+  if (!user) return { percent: 0, missingFields: [] };
+
+  const missingFields = [];
+  let filled = 0;
+  const total = 5;
+
+  if (user.name && user.name.trim().length > 1) filled += 1;
+  else missingFields.push('Name');
+
+  if (user.email && user.email.includes('@')) filled += 1;
+  else missingFields.push('Email');
+
+  if (Array.isArray(user.skills) && user.skills.length > 0) filled += 1;
+  else missingFields.push('Skills');
+
+  if (user.experience && (user.experience.years > 0 || (user.experience.summary && user.experience.summary.length > 0))) filled += 1;
+  else missingFields.push('Experience');
+
+  if (user.resumeUrl || user.resumeLink) filled += 1;
+  else missingFields.push('Resume');
+
+  return { percent: Math.round((filled / total) * 100), missingFields };
+}
 
 export default function Dashboard() {
-  const unreadCount = useSelector(state => state.unread.count);
+  const unreadCount = useSelector((state) => state.unread.count);
   const [user, setUser] = useState(null);
-  const [appStats, setAppStats] = useState({ applied: 0, accepted: 0, rejected: 0 });
+  const [analytics, setAnalytics] = useState(DEFAULT_ANALYTICS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('dashboard');
 
-  const fetchUser = () => {
-    setLoading(true);
-    getMe()
-      .then(res => {
-        setUser(res.data);
-        setError('');
-      })
-      .catch(err => {
-        setError(err.response?.data?.error || 'Failed to load user');
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
-  };
-
   useEffect(() => {
-    fetchUser();
-    async function fetchApplicationStats() {
+    const fetchDashboardData = async () => {
+      setLoading(true);
       try {
-        const res = await import('../services/api').then(m => m.default.get('/applications/mine'));
-        const applications = res.data || [];
-        const applied = applications.length;
-        const accepted = applications.filter(app => app.status === 'accepted').length;
-        const rejected = applications.filter(app => app.status === 'rejected').length;
-        setAppStats({ applied, accepted, rejected });
-      } catch {
-        setAppStats({ applied: 0, accepted: 0, rejected: 0 });
+        const [userRes, analyticsRes] = await Promise.all([
+          getMe(),
+          getJobSeekerAnalytics(),
+        ]);
+
+        setUser(userRes.data);
+        setAnalytics(normalizeAnalytics(analyticsRes));
+        setError('');
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to load dashboard data');
+        setUser(null);
+        setAnalytics(DEFAULT_ANALYTICS);
+      } finally {
+        setLoading(false);
       }
-    }
-    fetchApplicationStats();
+    };
+
+    fetchDashboardData();
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
-      <div className="text-center">
-        <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
-      </div>
-    </div>
-  );
+  const stats = useMemo(() => ({
+    Applied: analytics.overview.totalApplications,
+    Hired: analytics.statusCounts.hired,
+    Rejected: analytics.statusCounts.rejected,
+  }), [analytics]);
 
-  if (error) return (
-    <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
-      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-8 max-w-md text-center">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center">
-          <span className="text-xl">⚠️</span>
+  const statusChartData = useMemo(() => [
+    { name: 'Applied', value: analytics.statusCounts.applied, color: '#0071E3' },
+    { name: 'Screening', value: analytics.statusCounts.screening, color: '#0B79D0' },
+    { name: 'Interview', value: analytics.statusCounts.interview, color: '#FF9F0A' },
+    { name: 'Hired', value: analytics.statusCounts.hired, color: '#34C759' },
+    { name: 'Rejected', value: analytics.statusCounts.rejected, color: '#FF3B30' },
+  ], [analytics.statusCounts]);
+
+  const hasStatusData = statusChartData.some((entry) => entry.value > 0);
+
+  const progressMetrics = useMemo(() => [
+    {
+      key: 'responseRate',
+      label: 'Response Rate',
+      value: analytics.overview.responseRate,
+      description: 'Applications moved beyond the applied stage',
+      barClass: 'bg-[var(--color-accent)]',
+    },
+    {
+      key: 'interviewRate',
+      label: 'Interview Rate',
+      value: analytics.overview.interviewRate,
+      description: 'Applications that reached interview or better',
+      barClass: 'bg-[var(--color-warning)]',
+    },
+    {
+      key: 'successRate',
+      label: 'Success Rate',
+      value: analytics.overview.successRate,
+      description: 'Applications that resulted in a hired outcome',
+      barClass: 'bg-[var(--color-success)]',
+    },
+  ], [analytics.overview.interviewRate, analytics.overview.responseRate, analytics.overview.successRate]);
+
+  const { percent: profileCompletion, missingFields } = getProfileCompletionAndMissing(user);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+        <div className="text-center">
+          <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Something went wrong</h3>
-        <p className="text-sm text-[var(--color-danger)]">{error}</p>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
+        <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-8 max-w-md text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center">
+            <span className="text-xl text-[var(--color-danger)]">!</span>
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Something went wrong</h3>
+          <p className="text-sm text-[var(--color-danger)]">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
-  const stats = {
-    Applied: appStats.applied,
-    Accepted: appStats.accepted,
-    Rejected: appStats.rejected,
-  };
-
-  function getProfileCompletionAndMissing(user) {
-    if (!user) return { percent: 0, missingFields: [] };
-    let total = 5;
-    let filled = 0;
-    let missingFields = [];
-    if (user.name && user.name.trim().length > 1) filled++; else missingFields.push('Name');
-    if (user.email && user.email.includes('@')) filled++; else missingFields.push('Email');
-    if (Array.isArray(user.skills) && user.skills.length > 0) filled++; else missingFields.push('Skills');
-    if (user.experience && (user.experience.years > 0 || (user.experience.summary && user.experience.summary.length > 0))) filled++; else missingFields.push('Experience');
-    if (user.resumeUrl) filled++; else missingFields.push('Resume');
-    const percent = Math.round((filled / total) * 100);
-    return { percent, missingFields };
-  }
-
-  const activities = user?.activities || [];
-  const recommendedJobs = user?.recommendedJobs || [];
-  const { percent: profileCompletion, missingFields } = getProfileCompletionAndMissing(user);
-  const notifications = user?.notifications || [];
-
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      <Topbar user={user} notifications={notifications} />
+      <Topbar user={user} />
 
       <div className="relative flex-1 flex">
         <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
@@ -112,34 +207,35 @@ export default function Dashboard() {
           />
         </div>
 
-        <main className="flex-1 lg:ml-64 pt-14 flex flex-col">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-            <AnimatePresence mode="wait">
-              {activeSection === 'dashboard' && (
-                <motion.div
-                  key="dashboard"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full flex flex-col justify-center items-center"
-                >
-                  {/* Welcome Header */}
-                  <div className="mb-6 w-full">
-                    <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 sm:p-6 w-full">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        {/* Avatar */}
+        <main className="flex-1 lg:ml-64 w-full max-w-7xl mx-auto pt-20 px-4 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+          <AnimatePresence mode="wait">
+            {activeSection === 'dashboard' && (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="w-full"
+              >
+                <div className="space-y-4">
+                  <div className="relative overflow-hidden bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 sm:p-6">
+                    <div className="pointer-events-none absolute -top-24 -right-16 w-64 h-64 rounded-full bg-[var(--color-accent-bg)]/80 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-16 left-10 w-52 h-52 rounded-full bg-[var(--color-success-bg)]/70 blur-3xl" />
+
+                    <div className="relative flex flex-col lg:flex-row lg:items-center gap-5">
+                      <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
                         <div className="shrink-0">
                           {user.role === 'recruiter' ? (
                             user.companyLogo ? (
                               <img
                                 src={getImageUrl(user.companyLogo)}
                                 alt="company logo"
-                                className="w-14 h-14 rounded-full object-cover ring-1 ring-[var(--color-border)]"
+                                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-sm"
                               />
                             ) : (
-                              <span className="w-14 h-14 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)]">
-                                <FaBuilding size={22} />
+                              <span className="w-16 h-16 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)] ring-1 ring-[var(--color-border)]">
+                                <FaBuilding size={24} />
                               </span>
                             )
                           ) : (
@@ -147,80 +243,157 @@ export default function Dashboard() {
                               <img
                                 src={getImageUrl(user.profilePicture)}
                                 alt="avatar"
-                                className="w-14 h-14 rounded-full object-cover ring-1 ring-[var(--color-border)]"
+                                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-sm"
                               />
                             ) : (
-                              <span className="w-14 h-14 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)]">
-                                <FaUser size={22} />
+                              <span className="w-16 h-16 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-tertiary)] ring-1 ring-[var(--color-border)]">
+                                <FaUser size={24} />
                               </span>
                             )
                           )}
                         </div>
 
-                        {/* Text */}
-                        <div className="flex-1 min-w-0">
-                          <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] mb-0.5 truncate">
-                            Welcome back, {user.name}
-                          </h1>
-                          <p className="text-sm text-[var(--color-text-secondary)]">
-                            Here's what's happening with your job search today
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] truncate">
+                              Welcome back, {user.name}
+                            </h1>
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--color-accent-bg)] text-[var(--color-accent)]">
+                              Jobseeker Dashboard
+                            </span>
+                          </div>
+                          <p className="text-sm text-[var(--color-text-secondary)] max-w-2xl">
+                            Track your job search with real-time analytics from your applications.
                           </p>
                         </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full lg:w-auto lg:min-w-[300px]">
+                        <div className="rounded-xl border border-[var(--color-border)] bg-white/75 backdrop-blur-sm p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Applications</p>
+                          <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">{analytics.overview.totalApplications}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-border)] bg-white/75 backdrop-blur-sm p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Response Rate</p>
+                          <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">{analytics.overview.responseRate}%</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Main Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-                    {/* Left Column */}
-                    <div className="lg:col-span-2 flex flex-col gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ProfileCompletionCard percent={profileCompletion} missingFields={missingFields} />
-                        <StatsCard stats={stats} />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ProfileCompletionCard percent={profileCompletion} missingFields={missingFields} />
+                    <StatsCard stats={stats} />
+                  </div>
 
-                      {/* Activity */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--color-accent-bg)] text-[var(--color-accent)] flex items-center justify-center mb-3">
+                        <FaBookmark className="text-sm" />
+                      </div>
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide mb-1">Saved Jobs</p>
+                      <p className="text-3xl font-bold text-[var(--color-text-primary)]">{analytics.overview.savedJobs}</p>
+                    </div>
+
+                    <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--color-warning-bg)] text-[var(--color-warning)] flex items-center justify-center mb-3">
+                        <FaChartLine className="text-sm" />
+                      </div>
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide mb-1">Active Pipeline</p>
+                      <p className="text-3xl font-bold text-[var(--color-text-primary)]">{analytics.overview.activeApplications}</p>
+                    </div>
+
+                    <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--color-success-bg)] text-[var(--color-success)] flex items-center justify-center mb-3">
+                        <FaBullseye className="text-sm" />
+                      </div>
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide mb-1">Responded</p>
+                      <p className="text-3xl font-bold text-[var(--color-text-primary)]">{analytics.overview.respondedApplications}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <div className="xl:col-span-2 space-y-4">
+                      <ApplicationTrendsChart data={analytics.trends} />
+
                       <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
-                        <ActivityList activities={activities} />
+                        <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Progress Metrics</h3>
+                        <div className="space-y-4">
+                          {progressMetrics.map((metric) => {
+                            const width = Math.max(0, Math.min(metric.value, 100));
+                            return (
+                              <div key={metric.key}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{metric.label}</p>
+                                  <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{width}%</p>
+                                </div>
+                                <div className="h-2 bg-[var(--color-surface-secondary)] rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${metric.barClass}`}
+                                    style={{ width: `${width}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-[var(--color-text-tertiary)] mt-1.5">{metric.description}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Right Column */}
-                    <div className="flex flex-col gap-4">
-                      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 flex-1 min-h-0 flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-semibold text-[var(--color-text-primary)]">
-                            Recommended for You
-                          </h4>
-                          <span className="text-xs font-medium text-[var(--color-accent)] bg-[var(--color-accent-bg)] px-2 py-0.5 rounded-full">
-                            {recommendedJobs.length} Jobs
-                          </span>
+                    <div className="space-y-4">
+                      {hasStatusData ? (
+                        <JobStatusChart data={statusChartData} />
+                      ) : (
+                        <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+                          <h3 className="font-semibold text-[var(--color-text-primary)] mb-2">Application Pipeline</h3>
+                          <p className="text-sm text-[var(--color-text-secondary)]">Apply to jobs to start seeing your pipeline breakdown.</p>
                         </div>
+                      )}
 
-                        <div className="space-y-2 flex-1 min-h-0 overflow-auto pr-1">
-                          {recommendedJobs.length > 0 ? (
-                            recommendedJobs.map((job) => (
-                              <JobCard key={job.id} job={job} onApply={() => { }} />
-                            ))
-                          ) : (
-                            <div className="text-center py-8">
-                              <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center">
-                                <span className="text-lg">🔍</span>
+                      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+                        <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Recent Applications</h3>
+                        {analytics.recentApplications.length > 0 ? (
+                          <div className="space-y-3">
+                            {analytics.recentApplications.map((application) => (
+                              <div
+                                key={application.id}
+                                className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/70"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+                                      {application.jobTitle}
+                                    </p>
+                                    <p className="text-xs text-[var(--color-text-secondary)] truncate">{application.company}</p>
+                                  </div>
+                                  <span className={`px-2 py-1 rounded-full text-[10px] font-medium whitespace-nowrap ${STATUS_BADGES[application.status] || 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'}`}>
+                                    {APPLICATION_STATUS_LABELS[application.status] || application.status}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-[var(--color-text-tertiary)] mt-2">
+                                  {new Date(application.appliedAt).toLocaleDateString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </p>
                               </div>
-                              <p className="text-sm text-[var(--color-text-secondary)]">No recommendations yet</p>
-                              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Complete your profile to get personalized matches</p>
-                            </div>
-                          )}
-                        </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-[var(--color-text-secondary)]">No recent applications yet.</p>
+                        )}
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
+
       <div className="lg:ml-64">
         <Footer />
       </div>

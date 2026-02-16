@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 let socket = null;
+let socketAuthToken = null;
 
 /**
  * Initializes and connects the socket with JWT authentication.
@@ -10,16 +11,24 @@ let socket = null;
  * @returns {Socket} The connected socket instance.
  */
 export function connectSocket(token) {
-    if (socket?.connected) {
+    if (!token) {
+        console.warn('[Socket] Missing token; skipping socket connection.');
+        return null;
+    }
+
+    if (socket?.connected && socketAuthToken === token) {
         console.log('[Socket] Already connected.');
         return socket;
     }
 
-    // If socket exists but is disconnected, ensure we close it properly before reconnecting
+    // If auth token changed or socket is stale, reset and reconnect.
     if (socket) {
-        socket.close();
+        socket.removeAllListeners();
+        socket.disconnect();
         socket = null;
     }
+
+    socketAuthToken = token;
 
     console.log('[Socket] Connecting to:', SOCKET_URL);
 
@@ -63,6 +72,7 @@ export function disconnectSocket() {
     if (socket) {
         socket.disconnect();
         socket = null;
+        socketAuthToken = null;
         console.log('[Socket] Manually disconnected.');
     }
 }

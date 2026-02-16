@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api.js';
+import { disconnectSocket } from '../../services/socketService';
 
 export const register = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
   try {
@@ -55,10 +56,12 @@ export const login = createAsyncThunk('auth/login', async (data, { rejectWithVal
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
     await api.post('/auth/logout');
+    disconnectSocket();
     // Clear token from localStorage
     localStorage.removeItem('token');
     return null;
   } catch (err) {
+    disconnectSocket();
     localStorage.removeItem('token'); // Clear even on error
     return rejectWithValue('Logout failed');
   }

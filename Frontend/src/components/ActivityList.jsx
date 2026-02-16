@@ -2,10 +2,10 @@ import React from 'react';
 
 const statusColors = {
   applied: 'bg-[var(--color-accent-bg)] text-[var(--color-accent)]',
-  'under review': 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
+  screening: 'bg-[#EEF7FF] text-[#0B79D0]',
+  interview: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
+  hired: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
   rejected: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)]',
-  shortlisted: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
-  interview: 'bg-purple-50 text-purple-600',
 };
 
 export default function ActivityList({ activities }) {

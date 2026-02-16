@@ -5,17 +5,21 @@ import Toast from './Toast';
 import { FaBuilding, FaUser, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { getImageUrl } from '../utils/urlHelper';
+import { getApplicationStatusLabel, normalizeApplicationStatus } from '../utils/applicationStatus';
 
 function StatusBadge({ status }) {
+  const normalizedStatus = normalizeApplicationStatus(status);
   const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    accepted: 'bg-green-100 text-green-800 border-green-300',
-    rejected: 'bg-red-100 text-red-800 border-red-300'
+    applied: 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] border-blue-200',
+    screening: 'bg-[#EEF7FF] text-[#0B79D0] border-blue-200',
+    interview: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-yellow-200',
+    hired: 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-green-200',
+    rejected: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-red-200'
   };
 
   return (
-    <span className={`px-3 py-1 rounded text-sm font-semibold border ${statusColors[status] || statusColors.pending}`}>
-      {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending'}
+    <span className={`px-3 py-1 rounded text-sm font-semibold border ${statusColors[normalizedStatus] || statusColors.applied}`}>
+      {getApplicationStatusLabel(normalizedStatus)}
     </span>
   );
 }
@@ -46,7 +50,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
   };
 
   return (
-    <motion.div whileHover={{ scale: 1.03 }} className="bg-white rounded shadow p-4 mb-4 flex flex-col gap-2">
+    <motion.div whileHover={{ scale: 1.03 }} className="ui-card-hover bg-white rounded border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4 mb-4 flex flex-col gap-2">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           {/* Company Logo */}
