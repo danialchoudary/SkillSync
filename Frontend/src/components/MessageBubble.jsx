@@ -1,4 +1,5 @@
 import React from 'react';
+import { toBackendUrl } from '../config/runtime.js';
 
 function getId(value) {
   if (!value) return '';
@@ -47,7 +48,7 @@ export default function MessageBubble({ msg, currentUser }) {
               {msg.fileType?.startsWith('image/') ? (
                 <div className="overflow-hidden rounded-lg">
                   <img
-                    src={msg.fileUrl?.startsWith('http') ? msg.fileUrl : `http://localhost:5000${msg.fileUrl}`}
+                    src={toBackendUrl(msg.fileUrl)}
                     alt={msg.fileName}
                     className="max-w-full max-h-60 object-contain"
                   />
@@ -68,7 +69,7 @@ export default function MessageBubble({ msg, currentUser }) {
                 </div>
               )}
               <a
-                href={msg.fileUrl?.startsWith('http') ? msg.fileUrl : `http://localhost:5000${msg.fileUrl}`}
+                href={toBackendUrl(msg.fileUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex items-center justify-center gap-1.5 py-1.5 w-full text-xs font-medium rounded-lg transition-colors ${isMine

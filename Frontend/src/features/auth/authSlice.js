@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api.js';
-import { disconnectSocket } from '../../services/socketService';
+import { disconnectSocket } from '../../services/socketService.js';
 
 export const register = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
   try {

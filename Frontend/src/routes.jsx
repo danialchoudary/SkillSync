@@ -10,7 +10,7 @@ import Profile from './components/Profile';
 import Jobs from './pages/Jobs';
 import SavedJobs from './pages/SavedJobs';
 import RecruiterDashboard from './pages/RecruiterDashboard';
-import JobForm from './components/JobForm';
+import JobForm from './features/jobs/components/JobForm';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';

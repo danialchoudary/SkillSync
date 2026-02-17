@@ -1,6 +1,5 @@
 import { io } from 'socket.io-client';
-
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+import { socketUrl } from '../config/runtime.js';
 
 let socket = null;
 let socketAuthToken = null;
@@ -30,9 +29,9 @@ export function connectSocket(token) {
 
     socketAuthToken = token;
 
-    console.log('[Socket] Connecting to:', SOCKET_URL);
+    console.log('[Socket] Connecting to:', socketUrl);
 
-    socket = io(SOCKET_URL, {
+    socket = io(socketUrl, {
         auth: { token },
         withCredentials: true,
         transports: ['websocket', 'polling'],

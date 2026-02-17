@@ -8,10 +8,13 @@ import healthRoutes from './routes/health.js';
 import dashboardRoutes from './routes/dashboard.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import jobsRouter from './routes/jobs.js';
 import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+
+const backendRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const allowedOrigins = [
   "http://localhost:5173", // for local dev
@@ -28,7 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Serve static files (resumes, etc.) from the uploads folder
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(backendRoot, 'uploads')));
 
 app.use('/auth', authRoutes);
 app.use('/health', healthRoutes);
