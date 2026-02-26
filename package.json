@@ -2,7 +2,10 @@
   "scripts": {
     "test": "npm --prefix Backend test && npm --prefix Frontend test",
     "test:backend": "npm --prefix Backend test",
-    "test:frontend": "npm --prefix Frontend test"
+    "test:frontend": "npm --prefix Frontend test",
+    "coverage": "npm run coverage:backend && npm run coverage:frontend",
+    "coverage:backend": "npm --prefix Backend run coverage",
+    "coverage:frontend": "npm --prefix Frontend run coverage"
   },
   "dependencies": {
     "express-session": "^1.18.2",

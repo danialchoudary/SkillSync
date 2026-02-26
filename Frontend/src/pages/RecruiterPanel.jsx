@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchCurrentUser } from '../features/auth/authSlice';
 import RecruiterSidebar from '../components/RecruiterSidebar';
 import JobForm from '../features/jobs/components/JobForm';
 import JobCard from '../features/jobs/components/JobCard';
-import { postJob, getMyJobs, deleteJob, updateJob } from '../features/jobs/services/jobApi';
+import useRecruiterJobsPanel from '../features/recruiter/hooks/useRecruiterJobsPanel';
 import RecruiterProfileSection from '../components/RecruiterProfileSection';
 import Applicants from './Applicants';
 import Topbar from '../components/Topbar';
@@ -13,7 +13,7 @@ import Footer from '../components/Footer';
 import Toast from '../components/Toast';
 import EditJobModal from '../components/EditJobModal';
 import RecruiterDashboard from './RecruiterDashboard';
-import { Briefcase, Search, Calendar, Filter, Plus, ChevronDown, CheckCircle, AlertCircle } from 'lucide-react';
+import { Briefcase, Search, Calendar, Filter, Plus, ChevronDown } from 'lucide-react';
 
 function RecruiterPanel() {
   const unreadCount = useSelector(state => state.unread.count);
@@ -23,28 +23,26 @@ function RecruiterPanel() {
   const location = useLocation();
   const activeSection = location.pathname.replace(/^\/recruiter\/?/, '') || 'dashboard';
 
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [editJob, setEditJob] = useState(null);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [toast, setToast] = useState({ message: '', type: 'success' });
-
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateSort, setDateSort] = useState('newest');
-
-  const fetchJobs = async () => {
-    setLoading(true);
-    try {
-      const data = await getMyJobs();
-      setJobs(data);
-    } catch {
-      setJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    jobs,
+    loading,
+    editJob,
+    editLoading,
+    toast,
+    setToast,
+    searchQuery,
+    setSearchQuery,
+    dateSort,
+    setDateSort,
+    filteredAndSortedJobs,
+    handleClearFilters,
+    handlePostJob,
+    handleDeleteJob,
+    handleEditJob,
+    closeEditJob,
+    handleUpdateJob,
+    showToast,
+  } = useRecruiterJobsPanel(activeSection);
 
   useEffect(() => {
     dispatch(fetchCurrentUser());
@@ -52,74 +50,6 @@ function RecruiterPanel() {
 
   const handleSectionChange = (section) => {
     navigate(`/recruiter${section === 'dashboard' ? '' : '/' + section}`);
-  };
-
-  useEffect(() => {
-    if (activeSection === 'myjobs') fetchJobs();
-  }, [activeSection]);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  const handlePostJob = async job => {
-    try {
-      await postJob(job);
-      showToast('Job posted successfully!', 'success');
-      fetchJobs();
-    } catch {
-      showToast('Failed to post job. Please try again.', 'error');
-    }
-  };
-
-  const handleDeleteJob = async job => {
-    try {
-      await deleteJob(job._id || job.id);
-      showToast('Job deleted successfully!', 'success');
-      fetchJobs();
-    } catch {
-      showToast('Failed to delete job.', 'error');
-    }
-  };
-
-  const handleEditJob = job => {
-    setEditJob(job);
-  };
-
-  const handleUpdateJob = async updated => {
-    setEditLoading(true);
-    setEditError('');
-    try {
-      await updateJob(editJob._id || editJob.id, updated);
-      setEditJob(null);
-      showToast('Job updated successfully!', 'success');
-      fetchJobs();
-    } catch (err) {
-      setEditError('Failed to update job. Please try again.');
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const filteredAndSortedJobs = useMemo(() => {
-    let filtered = [...jobs];
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(job =>
-        job.title?.toLowerCase().includes(query)
-      );
-    }
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateSort === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-    return filtered;
-  }, [jobs, searchQuery, dateSort]);
-
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setDateSort('newest');
   };
 
   return (
@@ -302,7 +232,7 @@ function RecruiterPanel() {
       <EditJobModal
         open={!!editJob}
         job={editJob}
-        onClose={() => setEditJob(null)}
+        onClose={closeEditJob}
         onUpdate={handleUpdateJob}
         loading={editLoading}
       />

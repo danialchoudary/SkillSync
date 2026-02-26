@@ -3,8 +3,9 @@ import JobCard from '../features/jobs/components/JobCard';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import Footer from '../components/Footer';
-import { getSavedJobs, unsaveJob, applyForJob } from '../features/jobs/services/jobApi';
-import api from '../services/api';
+import { getMe } from '../services/api';
+import { getMyApplications } from '../services/applicationApi';
+import { getSavedJobs, unsaveJob, applyForJob } from '../services/jobApi';
 
 export default function SavedJobs() {
   const [savedJobs, setSavedJobs] = useState([]);
@@ -20,9 +21,9 @@ export default function SavedJobs() {
 
   useEffect(() => {
     fetchSavedJobs();
-    api.get('/me').then(res => setUser(res.data)).catch(() => setUser({}));
-    api.get('/applications/mine')
-      .then(res => setApplications(res.data))
+    getMe().then((res) => setUser(res.data)).catch(() => setUser({}));
+    getMyApplications()
+      .then((applicationsData) => setApplications(applicationsData))
       .catch(() => setApplications([]));
   }, []);
 

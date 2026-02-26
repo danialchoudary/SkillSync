@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
-import { updateMe, uploadResume } from '../services/api';
-import api from '../services/api';
+import { updateMe, uploadProfilePicture, uploadResume } from '../services/api';
 import ProfilePictureSection from './EditProfileModal/ProfilePictureSection';
 import SkillsSection from './EditProfileModal/SkillsSection';
 import ExperienceSection from './EditProfileModal/ExperienceSection';
@@ -143,11 +142,7 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
     setProfilePicUploading(true);
     setProfilePicError('');
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await api.post('/me/profile-picture', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await uploadProfilePicture(file);
       if (res.data) {
         const url = res.data.profilePictureUrl || res.data.profilePicture;
         if (url) user.profilePicture = url;

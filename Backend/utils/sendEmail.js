@@ -53,10 +53,18 @@ const sendEmail = async (options) => {
             await sleep(delay);
         }
 
+        const transporter = createTransporter();
         try {
-            const transporter = createTransporter();
-            await transporter.verify();
-            await transporter.sendMail(mailOptions);
+            const info = await transporter.sendMail(mailOptions);
+            const accepted = Array.isArray(info?.accepted) ? info.accepted : [];
+            const rejected = Array.isArray(info?.rejected) ? info.rejected : [];
+
+            if (accepted.length === 0 && rejected.length > 0) {
+                const error = new Error('Email rejected by SMTP server');
+                error.code = 'EENVELOPE';
+                throw error;
+            }
+
             return;
         } catch (err) {
             lastErr = err;
@@ -69,6 +77,10 @@ const sendEmail = async (options) => {
 
             if (isConfigError) {
                 break;
+            }
+        } finally {
+            if (typeof transporter.close === 'function') {
+                transporter.close();
             }
         }
     }

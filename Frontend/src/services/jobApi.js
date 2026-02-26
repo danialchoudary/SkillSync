@@ -1,3 +1,5 @@
+import api from './api';
+
 export const updateJob = async (jobId, updatedData) => {
   try {
     const res = await api.put(`/jobs/${jobId}`, updatedData, { withCredentials: true });
@@ -7,6 +9,7 @@ export const updateJob = async (jobId, updatedData) => {
     throw err;
   }
 };
+
 export const deleteJob = async (jobId) => {
   try {
     const res = await api.delete(`/jobs/${jobId}`, { withCredentials: true });
@@ -16,7 +19,16 @@ export const deleteJob = async (jobId) => {
     throw err;
   }
 };
-import api from '../../../services/api';
+
+export const getJobs = async () => {
+  try {
+    const res = await api.get('/jobs', { withCredentials: true });
+    return res.data;
+  } catch (err) {
+    console.error('Get jobs error:', err);
+    throw err;
+  }
+};
 
 export const saveJob = async (id) => {
   try {

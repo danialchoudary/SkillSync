@@ -91,7 +91,7 @@ const ApplicantCard = ({ applicant, onStatusChange }) => {
                     {isMenuOpen && (
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-md)] z-20 py-1.5 backdrop-blur-md bg-white/90">
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-md)] z-20 py-1.5 backdrop-blur-md">
                                 <p className="px-3 py-2 text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest border-b border-[var(--color-border)] mb-1">
                                     Update Status
                                 </p>

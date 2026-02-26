@@ -29,3 +29,13 @@ export const getAIMatch = async (appId) => {
         throw error;
     }
 };
+
+export const getMyApplications = async () => {
+    try {
+        const response = await api.get('/applications/mine');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching my applications:', error);
+        throw error;
+    }
+};

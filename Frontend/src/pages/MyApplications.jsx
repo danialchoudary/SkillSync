@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import Footer from '../components/Footer';
-import api from '../services/api';
+import { getMe } from '../services/api';
+import { getMyApplications } from '../services/applicationApi';
 import { getImageUrl } from '../utils/urlHelper';
 import {
   APPLICATION_STATUS_FILTER_OPTIONS,
@@ -18,10 +19,10 @@ export default function MyApplications() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    api.get('/me').then(res => setUser(res.data)).catch(() => setUser({}));
-    api.get('/applications/mine')
-      .then((res) =>
-        setApplications((res.data || []).map((app) => ({
+    getMe().then((res) => setUser(res.data)).catch(() => setUser({}));
+    getMyApplications()
+      .then((applicationsData) =>
+        setApplications((applicationsData || []).map((app) => ({
           ...app,
           status: normalizeApplicationStatus(app.status),
         })))

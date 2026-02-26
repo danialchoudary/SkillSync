@@ -1,15 +1,8 @@
 import express from 'express';
-import { verifyEmailTransport } from '../utils/sendEmail.js';
+import { getEmailHealth } from '../controllers/healthController.js';
 
 const router = express.Router();
 
-router.get('/email', async (req, res) => {
-  try {
-    await verifyEmailTransport();
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(503).json({ ok: false, error: err.message });
-  }
-});
+router.get('/email', getEmailHealth);
 
 export default router;

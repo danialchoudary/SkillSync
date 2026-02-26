@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ApplyModal from './ApplyModal';
 import { createPortal } from 'react-dom';
-import { applyForJob } from '../services/jobApi';
+import { applyForJob } from '../../../services/jobApi';
 import Toast from '../../../components/Toast';
 import { FaBuilding, FaMapMarkerAlt, FaMoneyBillWave, FaRegBookmark, FaBookmark, FaClock, FaCheckCircle, FaSearch } from 'react-icons/fa';
 import { getImageUrl } from '../../../utils/urlHelper';

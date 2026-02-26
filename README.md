@@ -23,3 +23,18 @@ Watch mode:
 cd Backend && npm run test:watch
 cd Frontend && npm run test:watch
 ```
+
+## Coverage
+
+Generate coverage for both apps from repository root:
+
+```bash
+npm run coverage
+```
+
+Generate coverage for a specific app:
+
+```bash
+npm run coverage:backend
+npm run coverage:frontend
+```

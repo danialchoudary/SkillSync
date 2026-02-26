@@ -9,8 +9,9 @@
     "dev": "nodemon server.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "node --test --test-timeout=60000 --test-force-exit \"tests/unit/**/*.test.js\"",
-    "test:integration": "node --test --test-timeout=60000 --test-force-exit \"tests/integration/**/*.test.js\"",
-    "test:watch": "node --test --watch --test-timeout=60000 \"tests/**/*.test.js\""
+    "test:integration": "node --test --test-concurrency=1 --test-timeout=120000 --test-force-exit \"tests/integration/**/*.test.js\"",
+    "test:watch": "node --test --watch --test-timeout=60000 \"tests/**/*.test.js\"",
+    "coverage": "c8 --reporter=text-summary --reporter=lcov --reporter=json-summary --report-dir=coverage --exclude=tests/** --exclude=scripts/debug/** --exclude=coverage/** node --test --test-concurrency=1 --test-timeout=120000 --test-force-exit \"tests/**/*.test.js\""
   },
   "author": "",
   "license": "ISC",
@@ -40,6 +41,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "c8": "^10.1.3",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.10"
   }
