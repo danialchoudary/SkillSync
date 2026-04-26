@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import jobsRouter from './routes/jobs.js';
 import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
+import ragRouter from './routes/ragRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const backendRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +42,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/jobs', jobsRouter);
 app.use('/applications', applicationsRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/rag', ragRouter);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

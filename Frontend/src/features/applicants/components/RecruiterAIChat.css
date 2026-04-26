@@ -1,0 +1,640 @@
+/* ============================================
+   Recruiter AI Chat Panel
+   Floating chat overlay for the Applicants page
+   ============================================ */
+
+/* ── Toggle Button ── */
+.rai-toggle {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #6366F1 100%);
+    color: var(--color-text-inverse);
+    box-shadow: 0 4px 20px rgba(0, 113, 227, 0.35);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.rai-toggle:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(0, 113, 227, 0.45);
+}
+
+.rai-toggle:active {
+    transform: scale(0.96);
+}
+
+.rai-toggle svg {
+    width: 26px;
+    height: 26px;
+}
+
+/* Notification dot */
+.rai-toggle .rai-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-success);
+    border: 2.5px solid var(--color-bg);
+}
+
+/* ── Chat Panel ── */
+.rai-panel {
+    position: fixed;
+    bottom: 6rem;
+    right: 1.5rem;
+    z-index: 999;
+    width: 420px;
+    max-width: calc(100vw - 2rem);
+    height: 560px;
+    max-height: calc(100vh - 8rem);
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    animation: rai-slide-up 0.25s ease;
+}
+
+@keyframes rai-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ── Header ── */
+.rai-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #6366F1 100%);
+    color: var(--color-text-inverse);
+    flex-shrink: 0;
+}
+
+.rai-hamburger-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.rai-hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.rai-hamburger-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.rai-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.rai-header-title {
+    font-size: var(--text-body);
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.rai-header-sub {
+    font-size: var(--text-caption);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.rai-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.rai-action-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.rai-action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Chat Sidebar (Overlay) ── */
+.rai-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    z-index: 10;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.rai-sidebar.open {
+    transform: translateX(0);
+}
+
+.rai-sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rai-new-chat-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--color-accent-bg);
+    color: var(--color-accent);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--text-body-sm);
+    transition: all var(--transition-fast);
+}
+
+.rai-new-chat-btn:hover {
+    background: var(--color-accent);
+    color: white;
+}
+
+.rai-new-chat-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.rai-close-sidebar-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+}
+
+.rai-close-sidebar-btn:hover {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+}
+
+.rai-sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.rai-session-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    margin-bottom: 0.25rem;
+    transition: background var(--transition-fast);
+}
+
+.rai-session-item:hover {
+    background: var(--color-bg);
+}
+
+.rai-session-item.active {
+    background: var(--color-surface-secondary);
+    border: 1px solid var(--color-border-subtle);
+}
+
+.rai-session-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.rai-session-title-wrap svg {
+    width: 14px;
+    height: 14px;
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+}
+
+.rai-session-title {
+    font-size: var(--text-body-sm);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.rai-delete-session {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, color 0.2s;
+    display: flex;
+}
+
+.rai-session-item:hover .rai-delete-session {
+    opacity: 1;
+}
+
+.rai-delete-session:hover {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+.rai-delete-session svg {
+    width: 14px;
+    height: 14px;
+}
+
+.rai-chat-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.rai-chat-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Messages Area ── */
+.rai-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.rai-messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.rai-messages::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+}
+
+/* ── Message Bubbles ── */
+.rai-msg {
+    max-width: 88%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-body-sm);
+    line-height: 1.6;
+    word-break: break-word;
+    animation: rai-fade-in 0.2s ease;
+}
+
+@keyframes rai-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rai-msg.user {
+    align-self: flex-end;
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    border-bottom-right-radius: 4px;
+}
+
+.rai-msg.assistant {
+    align-self: flex-start;
+    background: var(--color-surface-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+    border-bottom-left-radius: 4px;
+}
+
+/* Markdown styling inside assistant messages */
+.rai-msg.assistant strong {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.rai-msg.assistant ul,
+.rai-msg.assistant ol {
+    margin: 0.35rem 0;
+    padding-left: 1.25rem;
+}
+
+.rai-msg.assistant li {
+    margin-bottom: 0.2rem;
+}
+
+.rai-msg.assistant p {
+    margin: 0 0 0.4rem 0;
+}
+
+.rai-msg.assistant p:last-child {
+    margin-bottom: 0;
+}
+
+.rai-msg.assistant code {
+    background: var(--color-bg);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+/* ── Typing Indicator ── */
+.rai-typing {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    align-self: flex-start;
+    background: var(--color-surface-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    border-bottom-left-radius: 4px;
+    animation: rai-fade-in 0.2s ease;
+}
+
+.rai-typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.rai-typing-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-text-tertiary);
+    animation: rai-bounce 1.2s infinite;
+}
+
+.rai-typing-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.rai-typing-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes rai-bounce {
+
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+
+    30% {
+        transform: translateY(-5px);
+        opacity: 1;
+    }
+}
+
+.rai-typing-text {
+    font-size: var(--text-caption);
+    color: var(--color-text-tertiary);
+}
+
+/* ── Quick Prompts ── */
+.rai-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0 1rem 0.5rem;
+}
+
+.rai-prompt-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-accent);
+    background: var(--color-accent-bg);
+    border: 1px solid rgba(0, 113, 227, 0.15);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.rai-prompt-btn:hover {
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    border-color: var(--color-accent);
+}
+
+/* ── Input Area ── */
+.rai-input-area {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    flex-shrink: 0;
+}
+
+.rai-input {
+    flex: 1;
+    padding: 0.6rem 0.875rem;
+    font-size: var(--text-body-sm);
+    font-family: var(--font-family);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    resize: none;
+    min-height: 38px;
+    max-height: 80px;
+    line-height: 1.4;
+}
+
+.rai-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-focus);
+}
+
+.rai-input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.rai-send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.rai-send-btn:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: scale(1.05);
+}
+
+.rai-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rai-send-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ── Error State ── */
+.rai-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: var(--text-caption);
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
+    border-top: 1px solid rgba(255, 59, 48, 0.15);
+}
+
+.rai-error button {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-danger);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ── Welcome Message ── */
+.rai-welcome {
+    text-align: center;
+    padding: 1.5rem 1rem;
+}
+
+.rai-welcome-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 0.75rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--color-accent-bg) 0%, #EDE9FE 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rai-welcome-icon svg {
+    width: 26px;
+    height: 26px;
+    color: var(--color-accent);
+}
+
+.rai-welcome h3 {
+    font-size: var(--text-body);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 0.35rem;
+}
+
+.rai-welcome p {
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .rai-panel {
+        right: 0.5rem;
+        bottom: 5rem;
+        width: calc(100vw - 1rem);
+        height: calc(100vh - 6rem);
+    }
+
+    .rai-toggle {
+        bottom: 1rem;
+        right: 1rem;
+        width: 50px;
+        height: 50px;
+    }
+}

@@ -32,3 +32,8 @@ export const uploadMessageFile = async (file) => {
 };
 
 export const markMessageSeen = async (id) => api.put(`/api/messages/${id}/seen`);
+
+export const deleteConversation = async (userId) => {
+	console.log('Deleting conversation for userId:', userId);
+	return api.delete(`/api/messages/conversation/${userId}`);
+};

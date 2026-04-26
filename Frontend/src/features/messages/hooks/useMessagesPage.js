@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchAllUsers } from '../../../services/userApi';
-import { fetchConversation, sendMessage, markMessageSeen } from '../../../services/messagesApi';
+import { fetchConversation, sendMessage, markMessageSeen, deleteConversation } from '../../../services/messagesApi';
 import { getMe } from '../../../services/api';
 import { connectSocket, onEvent, offEvent, emitEvent, getSocket } from '../../../services/socketService';
 
@@ -122,6 +122,30 @@ export default function useMessagesPage({ locationPathname, navigate }) {
       setMessages([]);
     }
     setLoading(false);
+  };
+
+  const handleDeleteConversation = async (userToDelete) => {
+    const userId = getId(userToDelete?._id || userToDelete?.id);
+    if (!userId) return;
+
+    try {
+      await deleteConversation(userId);
+      setUsers(prev => prev.filter(u => getId(u._id || u.id) !== userId));
+
+      const currentSelectedId = getId(selectedUser?._id || selectedUser?.id);
+      if (currentSelectedId === userId) {
+        setSelectedUser(null);
+        setMessages([]);
+      }
+
+      // Cleanup locally cached stuff
+      setUnread(prev => { const p = { ...prev }; delete p[userId]; return p; });
+      setLastMessageAtByUser(prev => { const p = { ...prev }; delete p[userId]; return p; });
+
+    } catch (err) {
+      console.error('Error deleting conversation:', err);
+      alert('Failed to delete conversation. Please try again.');
+    }
   };
 
   const handleSend = async (e, options = {}) => {
@@ -321,7 +345,7 @@ export default function useMessagesPage({ locationPathname, navigate }) {
       });
 
       if (!isFromMe && message?._id && !message?.seen) {
-        markMessageSeen(message._id).catch(() => {});
+        markMessageSeen(message._id).catch(() => { });
         setUnread((prev) => ({ ...prev, [selectedUserId]: 0 }));
       }
     };
@@ -449,6 +473,7 @@ export default function useMessagesPage({ locationPathname, navigate }) {
     handleUserSelect,
     handleSend,
     handleTyping,
+    handleDeleteConversation,
     isUserOnline,
     handleRetryLoadUsers,
     getId,

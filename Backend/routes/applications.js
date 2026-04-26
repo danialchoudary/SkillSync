@@ -21,7 +21,7 @@ function jobSeekerOnly(req, res, next) {
   if (!req.user || req.user.role !== 'jobseeker') {
     return res.status(403).json({ error: 'Access denied' });
   }
-  return next();
+  return next();        
 }
 
 router.get('/job/:jobId', authMiddleware, getApplicantsForJob);

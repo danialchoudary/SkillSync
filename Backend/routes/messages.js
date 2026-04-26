@@ -7,6 +7,7 @@ import {
   markSeen,
   sendMessage,
   uploadMessageAttachment,
+  deleteConversation,
 } from '../controllers/messagesController.js';
 
 const upload = multer({
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post('/send', authMiddleware, sendMessage);
 router.post('/upload', authMiddleware, upload.single('file'), uploadMessageAttachment);
 router.get('/conversation/:userId', authMiddleware, getConversation);
+router.delete('/conversation/:userId', authMiddleware, deleteConversation);
 router.put('/:id/seen', authMiddleware, markSeen);
 
 export default router;

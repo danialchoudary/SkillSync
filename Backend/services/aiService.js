@@ -1,66 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from 'dotenv';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
-import fetch from 'node-fetch';
-import fs from 'fs/promises';
-import path from 'path';
+import { extractTextFromPdf } from '../utils/pdfUtils.js';
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-/**
- * Extracts text content from a PDF URL.
- * @param {string} pdfUrl - URL of the PDF file.
- * @returns {Promise<string>} - Extracted text.
- */
-const extractTextFromPdf = async (pdfUrl) => {
-    if (!pdfUrl) return "";
-    try {
-        let buffer;
-        if (pdfUrl.startsWith('http')) {
-            console.log(`[AI Service] Fetching remote PDF from: ${pdfUrl}`);
-            const response = await fetch(pdfUrl);
-
-            if (!response.ok) {
-                console.error(`[AI Service] Failed to fetch PDF. Status: ${response.status} ${response.statusText}`);
-                if (response.status === 401 && pdfUrl.includes('cloudinary')) {
-                    console.warn('[AI Service] Possible Cloudinary security restriction. Ensure asset is public or re-upload as "raw" resource.');
-                }
-                return "";
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            buffer = Buffer.from(arrayBuffer);
-        } else {
-            console.log(`[AI Service] Reading local PDF from: ${pdfUrl}`);
-            // Normalize path: remove leading slash if present and use process.cwd()
-            const relativePath = pdfUrl.startsWith('/') ? pdfUrl.substring(1) : pdfUrl;
-            // Also handle Windows backslashes if any
-            const normalizedPath = relativePath.replace(/\\/g, '/');
-            const absolutePath = path.resolve(process.cwd(), normalizedPath);
-
-            console.log(`[AI Service] Normalized absolute path: ${absolutePath}`);
-            buffer = await fs.readFile(absolutePath);
-        }
-
-        console.log(`[AI Service] PDF loaded. Buffer size: ${buffer.length} bytes`);
-
-        if (buffer.length === 0) {
-            console.error('[AI Service] PDF buffer is empty.');
-            return "";
-        }
-
-        const instance = new pdf.PDFParse({ data: buffer });
-        const data = await instance.getText();
-        return data.text;
-    } catch (error) {
-        console.error('[AI Service] PDF extraction error:', error);
-        return "";
-    }
-};
 
 /**
  * Analyzes the match between a job and a candidate using Gemini AI.

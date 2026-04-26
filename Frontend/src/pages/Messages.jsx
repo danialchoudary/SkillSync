@@ -5,10 +5,12 @@ import ChatWindow from '../components/ChatWindow';
 import Sidebar from '../components/Sidebar';
 import RecruiterSidebar from '../components/RecruiterSidebar';
 import Topbar from '../components/Topbar';
+import ConfirmModal from '../components/ConfirmModal';
 import useMessagesPage from '../features/messages/hooks/useMessagesPage';
 
 export default function Messages() {
   const [activeSection, setActiveSection] = useState('messages');
+  const [userToDelete, setUserToDelete] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -30,6 +32,7 @@ export default function Messages() {
     handleUserSelect,
     handleSend,
     handleTyping,
+    handleDeleteConversation,
     isUserOnline,
     handleRetryLoadUsers,
     getId,
@@ -78,6 +81,7 @@ export default function Messages() {
                 search={search}
                 setSearch={setSearch}
                 onUserSelect={handleUserSelect}
+                onDeleteUser={setUserToDelete}
                 userError={userError}
                 onRetryLoadUsers={handleRetryLoadUsers}
               />
@@ -111,6 +115,21 @@ export default function Messages() {
           </div>
         </main>
       </div>
+
+      <ConfirmModal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={() => {
+          if (userToDelete) {
+            handleDeleteConversation(userToDelete);
+          }
+        }}
+        title="Delete Conversation"
+        message={`Are you sure you want to permanently delete your conversation with ${userToDelete?.name || userToDelete?.companyName || userToDelete?.email}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { FaFilter, FaTimes } from 'react-icons/fa';
-import { KanbanBoard } from '../features/applicants/components';
+import { KanbanBoard, RecruiterAIChat } from '../features/applicants/components';
 import useApplicantsData from '../features/applicants/hooks/useApplicantsData';
 import useApplicantFilters from '../features/applicants/hooks/useApplicantFilters';
 import {
@@ -179,22 +179,20 @@ export default function Applicants({ setToast = () => { }, setToastType = () => 
                     <button
                       type="button"
                       onClick={() => toggleWorkMode('remote')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        workModeFilters.remote
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${workModeFilters.remote
                           ? 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] border-[var(--color-accent)]/30'
                           : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]'
-                      }`}
+                        }`}
                     >
                       Remote
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleWorkMode('onSite')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        workModeFilters.onSite
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${workModeFilters.onSite
                           ? 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] border-[var(--color-accent)]/30'
                           : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]'
-                      }`}
+                        }`}
                     >
                       On-site
                     </button>
@@ -232,11 +230,10 @@ export default function Applicants({ setToast = () => { }, setToastType = () => 
                         key={level.key}
                         type="button"
                         onClick={() => toggleExperienceLevel(level.key)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                          isActive
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${isActive
                             ? 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] border-[var(--color-accent)]/30'
                             : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]'
-                        }`}
+                          }`}
                       >
                         {level.label}
                       </button>
@@ -289,6 +286,7 @@ export default function Applicants({ setToast = () => { }, setToastType = () => 
           )}
         </div>
       </div>
+      <RecruiterAIChat />
     </div>
   );
 }

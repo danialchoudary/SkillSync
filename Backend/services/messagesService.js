@@ -44,3 +44,12 @@ export async function markMessageSeen(message) {
   return message;
 }
 
+export async function deleteConversationMessages(currentUserId, otherUserId) {
+  return Message.deleteMany({
+    $or: [
+      { senderId: currentUserId, receiverId: otherUserId },
+      { senderId: otherUserId, receiverId: currentUserId },
+    ],
+  });
+}
+

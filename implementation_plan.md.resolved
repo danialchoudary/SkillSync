@@ -1,0 +1,184 @@
+# Recruiter AI Assistant (RAG) — Implementation Plan
+
+## Problem Statement
+
+Recruiters on the **Applicants** page need an AI-powered chat assistant that lets them query applicant data using natural language — e.g. *"Who are my strongest Python candidates?"*, *"Compare the top 3 applicants for the React Developer role"*, *"Which candidates have 5+ years of experience?"*.
+
+---
+
+## Architecture Decision: Vector DB (Pinecone/ChromaDB) vs. Context-Window Stuffing
+
+Before writing any code, here is the core trade-off:
+
+### Option A — Traditional Vector DB RAG (Pinecone / ChromaDB)
+
+| Pros | Cons |
+|------|------|
+| Scales to thousands of applicants | Adds a new infrastructure dependency (Pinecone cloud or ChromaDB server) |
+| Semantic search is very precise | Requires a separate embeddings pipeline (OpenAI/Gemini embeddings API) |
+| Industry-standard RAG pattern | Embedding sync must run on every applicant create/update/delete |
+| | Adds **significant** operational complexity for a feature that queries a bounded, recruiter-scoped dataset |
+| | Pinecone costs money; ChromaDB requires Python + server or JS client with limited support |
+
+### Option B — Context-Window Stuffing with Gemini (Recommended ✅)
+
+| Pros | Cons |
+|------|------|
+| **Zero new infrastructure** — uses the Gemini API you already have | Won't scale past ~200-300 applicants per query (Gemini's 1M token window handles this easily) |
+| No embedding pipeline or sync to maintain | Slightly higher per-query token cost than a vector DB lookup |
+| Resume text extraction already exists in [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) | N/A for a recruiter's realistic applicant pool |
+| Simpler to build, test, and debug | |
+| Retrieval is always fresh — reads directly from MongoDB | |
+
+### Why Option B wins for SkillSync
+
+A single recruiter typically has **tens to low-hundreds** of applicants, not millions. Gemini 2.0 Flash has a **1 million token context window** — easily enough to fit all applicant profiles + resume summaries for a recruiter's entire pipeline. Option A adds infrastructure that doesn't solve a problem you actually have.
+
+> [!IMPORTANT]
+> If the applicant pool grows past ~500 per recruiter in the future, we can migrate to a vector DB later. The service layer is designed as a clean abstraction, so swapping the retrieval strategy requires changing only `ragService.js`.
+
+---
+
+## Proposed Changes
+
+### Backend
+
+---
+
+#### [NEW] [ragService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/ragService.js)
+
+The core RAG service with these responsibilities:
+
+1. **`buildApplicantContext(recruiterId)`** — Fetches all jobs for the recruiter, then all applications for those jobs (with populated user + job data). Extracts resume text for each applicant using the existing [extractTextFromPdf](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js#14-64) helper from [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js). Assembles a structured plain-text context document.
+
+2. **`chat(recruiterId, userMessage, conversationHistory)`** — Calls Gemini with a system prompt defining its role as a recruiter assistant + the assembled applicant context + the user's conversation history. Returns the AI response.
+
+Key design decisions:
+- Resume text is extracted **on-demand** at query time (cached per session in the future if needed, but Gemini API latency dominates).
+- The [extractTextFromPdf](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js#14-64) function will be refactored out of [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) into a shared `pdfUtils.js` so both [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) and `ragService.js` can import it without circular dependencies.
+- Conversation history is passed from the frontend (stateless on the backend), keeping the API simple and horizontally scalable.
+
+---
+
+#### [NEW] [pdfUtils.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/utils/pdfUtils.js)
+
+Extracted [extractTextFromPdf](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js#14-64) function from [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js), so it can be shared by both [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) and `ragService.js`.
+
+---
+
+#### [MODIFY] [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js)
+
+- Remove the inline [extractTextFromPdf](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js#14-64) function
+- Import it from `../utils/pdfUtils.js` instead
+
+---
+
+#### [NEW] [ragController.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/controllers/ragController.js)
+
+Single endpoint handler:
+- **`handleChat(req, res)`** — Validates input (`message` string, optional `history` array), calls `ragService.chat()`, returns `{ reply: string }`.
+- Enforces recruiter-only access.
+
+---
+
+#### [NEW] [ragRoutes.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/routes/ragRoutes.js)
+
+```
+POST /rag/chat   →  authMiddleware → recruiterOnly → handleChat
+```
+
+---
+
+#### [MODIFY] [app.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/app.js)
+
+- Import and register `ragRoutes` at `/rag`
+
+---
+
+### Frontend
+
+---
+
+#### [NEW] [ragApi.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/services/ragApi.js)
+
+API client function:
+- **`sendRAGMessage(message, history)`** → POST `/rag/chat` → returns `{ reply }`
+
+---
+
+#### [NEW] [RecruiterAIChat.jsx](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/RecruiterAIChat.jsx)
+
+A floating chat panel component with:
+- Collapsible toggle button (bottom-right corner, styled with design tokens)
+- Chat message list (user + AI bubbles, matching existing [MessageBubble.jsx](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/components/MessageBubble.jsx) patterns)
+- Input field with send button
+- Loading state with typing indicator
+- Conversation history maintained in local React state
+- Suggested quick prompts (e.g. "Top candidates for…", "Who has experience in…")
+
+---
+
+#### [NEW] [RecruiterAIChat.css](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/RecruiterAIChat.css)
+
+Styles for the chat panel using existing CSS variables (`--color-accent`, `--color-surface`, `--color-bg`, etc).
+
+---
+
+#### [MODIFY] [Applicants.jsx](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/pages/Applicants.jsx)
+
+- Import and render `<RecruiterAIChat />` as a floating overlay within the Applicants page
+
+---
+
+## Data Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant R as Recruiter (Browser)
+    participant FE as React Frontend
+    participant BE as Express Backend
+    participant DB as MongoDB
+    participant AI as Gemini API
+
+    R->>FE: Types question in chat
+    FE->>BE: POST /rag/chat {message, history}
+    BE->>DB: Fetch recruiter's jobs
+    BE->>DB: Fetch all applications (populated)
+    BE->>BE: Extract resume text (PDF → text)
+    BE->>BE: Build context document
+    BE->>AI: Prompt (system + context + history + question)
+    AI-->>BE: AI response
+    BE-->>FE: {reply: "..."}
+    FE-->>R: Display AI response in chat
+```
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+#### Unit Test — `ragService.js`
+Create `Backend/tests/unit/services/ragService.test.js`:
+- Mock Gemini API and MongoDB queries
+- Verify `buildApplicantContext` correctly assembles context from applicant data
+- Verify `chat` sends the correct prompt structure to Gemini
+- Run with: `node --test --test-timeout=60000 "tests/unit/services/ragService.test.js"`  (from [Backend/](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/config/runtime.js#30-36) directory)
+
+#### Integration Test — `/rag/chat` endpoint
+Create `Backend/tests/integration/rag.routes.test.js`:
+- Test auth guard (401 without token, 403 for non-recruiter)
+- Test successful chat response with mocked Gemini
+- Run with: `node --test --test-concurrency=1 --test-timeout=120000 "tests/integration/rag.routes.test.js"` (from [Backend/](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/config/runtime.js#30-36) directory)
+
+### Manual Verification (Browser)
+1. Start the backend (`npm run dev` in [Backend/](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/config/runtime.js#30-36))
+2. Start the frontend (`npm run dev` in `Frontend/`)
+3. Log in as a **recruiter** user
+4. Navigate to the **Applicants** page
+5. Verify a floating AI chat button appears in the bottom-right corner
+6. Click it to open the chat panel
+7. Type a question like *"Who are my top applicants?"*
+8. Verify an AI response appears within a few seconds
+9. Verify the chat maintains conversation context (follow-up questions work)
+10. Verify the chat panel can be collapsed/expanded

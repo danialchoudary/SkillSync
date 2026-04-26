@@ -1,0 +1,59 @@
+# Recruiter AI Assistant (RAG) — Walkthrough
+
+## What Was Built
+
+A floating AI chat panel on the **Applicants** page that lets recruiters query their applicant pool using natural language. Powered by Gemini 2.0 Flash with context-window stuffing (not a vector database — see [implementation plan](file:///C:/Users/Computer%20Arena/.gemini/antigravity/brain/1e1cf0f8-2782-44ee-9ef3-d47ab944ee51/implementation_plan.md) for trade-off analysis).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Recruiter types question] --> B[React RecruiterAIChat]
+    B --> C[POST /rag/chat]
+    C --> D[ragController validates]
+    D --> E[ragService builds context]
+    E --> F[MongoDB: Jobs + Applications]
+    E --> G[pdfUtils: Extract resume text]
+    E --> H[Gemini 2.0 Flash]
+    H --> I[AI Response]
+    I --> B
+```
+
+## Files Changed
+
+### New Files (6)
+
+| File | Purpose |
+|------|---------|
+| [pdfUtils.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/utils/pdfUtils.js) | Shared PDF text extraction utility |
+| [ragService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/ragService.js) | Core RAG logic — builds applicant context, calls Gemini |
+| [ragController.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/controllers/ragController.js) | Input validation + recruiter authorization |
+| [ragRoutes.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/routes/ragRoutes.js) | `POST /rag/chat` route definition |
+| [ragApi.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/services/ragApi.js) | Frontend API client |
+| [RecruiterAIChat.jsx](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/RecruiterAIChat.jsx) + [.css](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/RecruiterAIChat.css) | Floating chat panel component + styles |
+
+### Modified Files (4)
+
+| File | Change |
+|------|--------|
+| [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) | Extracted [extractTextFromPdf](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/utils/pdfUtils.js#8-60) → imports from [pdfUtils.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/utils/pdfUtils.js) |
+| [app.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/app.js) | Registered `/rag` route |
+| [index.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/index.js) | Added [RecruiterAIChat](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/features/applicants/components/RecruiterAIChat.jsx#34-252) export |
+| [Applicants.jsx](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/pages/Applicants.jsx) | Renders `<RecruiterAIChat />` as floating overlay |
+
+## How to Test
+
+1. Restart the backend: `npm run dev` in [Backend/](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Frontend/src/config/runtime.js#30-36)
+2. Ensure frontend is running: `npm run dev` in `Frontend/`
+3. Log in as a **recruiter**
+4. Navigate to the **Applicants** page
+5. Click the floating ✨ button (bottom-right corner)
+6. Try: *"Who are my top candidates?"* or click a quick prompt
+7. Verify AI responds with applicant-specific data
+
+## Key Design Decisions
+
+- **Context-window stuffing** over vector DB — recruiter pools are bounded, Gemini's 1M token window handles it easily
+- **Stateless API** — conversation history sent from frontend, backend doesn't store sessions
+- **Resume text capped at 3000 chars** per applicant to stay well within token limits even with many applicants
+- **Shared [pdfUtils.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/utils/pdfUtils.js)** — avoids code duplication between [aiService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/aiService.js) and [ragService.js](file:///c:/Users/Computer%20Arena/Documents/webDev%20works/full%20stack/SkillSync/Backend/services/ragService.js)

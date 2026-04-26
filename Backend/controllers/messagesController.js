@@ -7,6 +7,7 @@ import {
   normalizeMessageContent,
   normalizeReceiverId,
   receiverExists,
+  deleteConversationMessages,
 } from '../services/messagesService.js';
 
 export async function sendMessage(req, res) {
@@ -101,6 +102,23 @@ export async function markSeen(req, res) {
     return res.json(updatedMessage);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to mark message as seen' });
+  }
+}
+
+export async function deleteConversation(req, res) {
+  const userId = normalizeReceiverId(req.params.userId);
+  const currentUserId = req.user._id.toString();
+
+  if (!isValidObjectId(userId)) {
+    return res.status(400).json({ error: 'Invalid userId' });
+  }
+
+  try {
+    await deleteConversationMessages(currentUserId, userId);
+    return res.json({ message: 'Conversation deleted successfully' });
+  } catch (err) {
+    console.error('Delete conversation error:', err);
+    return res.status(500).json({ error: 'Failed to delete conversation' });
   }
 }
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import { FaUser, FaBuilding } from 'react-icons/fa';
+import { FaUser, FaBuilding, FaTrash } from 'react-icons/fa';
 import { getImageUrl } from '../utils/urlHelper';
 
-export default function UserListItem({ user, selectedUser, unread, isOnline, onUserSelect }) {
+export default function UserListItem({ user, selectedUser, unread, isOnline, onUserSelect, onDeleteUser }) {
   const isSelected = selectedUser && selectedUser._id === user._id;
 
   let avatar = null;
@@ -64,7 +64,7 @@ export default function UserListItem({ user, selectedUser, unread, isOnline, onU
   }
 
   return (
-    <li className="relative">
+    <li className="relative group">
       <button
         className={`
           flex items-center gap-3 w-full text-left px-4 py-3
@@ -118,10 +118,25 @@ export default function UserListItem({ user, selectedUser, unread, isOnline, onU
           </div>
         </div>
 
-        {/* Selection Indicator */}
-        {isSelected && (
-          <div className="flex-shrink-0 w-1.5 h-1.5 bg-[var(--color-accent)] rounded-full" />
-        )}
+        {/* Selection Indicator & Delete Button */}
+        <div className="flex flex-col items-end justify-center gap-1.5 ml-2">
+          {onDeleteUser && (
+            <button
+              className="opacity-0 group-hover:opacity-100 p-1.5 text-[var(--color-text-tertiary)] hover:text-red-500 hover:bg-red-50 rounded transition-all focus:outline-none focus:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteUser(user);
+              }}
+              title="Delete Chat"
+              aria-label={`Delete chat with ${user.name || user.companyName || user.email}`}
+            >
+              <FaTrash size={12} />
+            </button>
+          )}
+          {isSelected && (
+            <div className="flex-shrink-0 w-1.5 h-1.5 bg-[var(--color-accent)] rounded-full" />
+          )}
+        </div>
       </button>
     </li>
   );
