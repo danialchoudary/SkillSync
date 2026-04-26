@@ -18,9 +18,11 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 const backendRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const allowedOrigins = [
-  "http://localhost:5173", // for local dev
-  process.env.FRONTEND_URL // for deployed frontend
-];
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+  "https://skill-sync-app.vercel.app", // Main production domain
+  "https://skill-sync-66u1u1oft-danialchoudarys-projects.vercel.app" // Specific preview domain
+].filter(Boolean);
 
 const app = express();
 app.use(cors({
