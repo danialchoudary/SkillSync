@@ -265,6 +265,7 @@ export const loginUser = async (req, res) => {
 
     res.json({ user: { name: user.name, email: user.email, role: user.role }, token });
   } catch (err) {
+
     console.error('Login error:', err);
     res.status(500).json({ error: err.message });
   }
@@ -284,4 +285,70 @@ export const getCurrentUser = async (req, res) => {
   const user = await User.findById(req.user.id).select('-password');
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
+};
+
+export const googleAuthCallback = (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+    }
+
+    // Issue JWT
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    // Set cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    // Check if user is fully registered
+    if (user.role === 'pending') {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/onboarding`);
+    }
+
+    // Fully registered
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`);
+  } catch (err) {
+    console.error('Google Auth Callback Error:', err);
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=server_error`);
+  }
+};
+
+export const completeOnboarding = async (req, res) => {
+  try {
+    const { role } = req.body; // 'jobseeker' or 'recruiter'
+    if (!['jobseeker', 'recruiter'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role !== 'pending') {
+      return res.status(400).json({ error: 'User has already completed onboarding' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    // Re-issue JWT with the correct role
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    res.json({ message: 'Onboarding completed successfully', user: { name: user.name, email: user.email, role: user.role }, token });
+  } catch (err) {
+    console.error('Complete Onboarding Error:', err);
+    res.status(500).json({ error: err.message });
+  }
 };

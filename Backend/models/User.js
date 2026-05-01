@@ -5,8 +5,9 @@ const userSchema = new mongoose.Schema({
   // Common fields
   name: { type: String },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'recruiter', 'jobseeker'], required: true },
+  password: { type: String },
+  googleId: { type: String },
+  role: { type: String, enum: ['admin', 'recruiter', 'jobseeker', 'pending'], required: true },
   // Jobseeker fields
   skills: [{ type: String }],
   experience: { type: String },
@@ -40,7 +41,7 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });

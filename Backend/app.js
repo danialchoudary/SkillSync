@@ -14,6 +14,11 @@ import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
 import ragRouter from './routes/ragRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import passport from 'passport';
+import { configurePassport } from './config/passport.js';
+
+// Initialize Passport
+configurePassport();
 
 const backendRoot = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +37,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 
 // Serve static files (resumes, etc.) from the uploads folder
 app.use('/uploads', express.static(path.join(backendRoot, 'uploads')));

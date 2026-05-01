@@ -11,6 +11,7 @@ import Jobs from './pages/Jobs';
 import SavedJobs from './pages/SavedJobs';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import JobForm from './features/jobs/components/JobForm';
+import Onboarding from './pages/Onboarding';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';
@@ -54,6 +55,14 @@ const routes = [
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute allowedRoles={['pending']}>
+        <Onboarding />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/dashboard',
     element: (
