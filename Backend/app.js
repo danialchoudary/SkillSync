@@ -24,14 +24,24 @@ const backendRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL,
-  "https://skill-sync-app.vercel.app", // Main production domain
-  "https://skill-sync-66u1u1oft-danialchoudarys-projects.vercel.app" // Specific preview domain
+  process.env.FRONTEND_URL
 ].filter(Boolean);
 
 const app = express();
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost, exact matches, and any vercel preview URL for skill-sync
+    if (
+      allowedOrigins.includes(origin) || 
+      (origin.includes('skill-sync') && origin.endsWith('.vercel.app'))
+    ) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true,
 }));
 app.use(express.json());
