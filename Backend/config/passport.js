@@ -8,7 +8,8 @@ export const configurePassport = () => {
       {
         clientID: process.env.GOOGLE_CLIENT_ID || 'dummy_client_id',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy_client_secret',
-        callbackURL: '/auth/google/callback', // Note: This should match the route setup
+        callbackURL: '/auth/google/callback',
+        proxy: true, // This tells Passport to trust Render's HTTPS proxy
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
