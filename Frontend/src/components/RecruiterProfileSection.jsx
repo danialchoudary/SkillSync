@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FaBuilding, FaGlobe, FaMapMarkerAlt, FaPen, FaCamera, FaEnvelope, FaIndustry } from 'react-icons/fa';
 import { getMe, updateMe, updateCompanyLogo } from '../services/api';
 import { getImageUrl } from '../utils/urlHelper';
+import ChangePasswordSection from './ChangePasswordSection';
 
 const INDUSTRIES = [
 	'IT', 'Healthcare', 'Finance', 'Education', 'Retail', 'Manufacturing', 'Construction', 'Hospitality', 'Other'
@@ -90,6 +91,11 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 		} finally {
 			setSaving(false);
 		}
+	};
+
+	const handlePasswordUpdated = () => {
+		setToast('Password updated successfully');
+		setToastType('success');
 	};
 
 	if (loading) return (
@@ -360,7 +366,12 @@ export default function RecruiterProfileSection({ setToast = () => { }, setToast
 										className="w-full px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 outline-none transition-all bg-[var(--color-surface)] resize-none"
 									/>
 								</div>
+
 							</form>
+
+							<div className="mt-6">
+								<ChangePasswordSection onSuccess={handlePasswordUpdated} />
+							</div>
 						</div>
 
 						<div className="px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] flex justify-end gap-3">

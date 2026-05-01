@@ -167,6 +167,21 @@ test('fetchCurrentUser success updates authenticated user', async () => {
   assert.deepEqual(store.getState().auth.user, currentUser);
 });
 
+test('fetchCurrentUser pending does not show route loader when user already exists', () => {
+  const existingUser = { _id: 'u-existing', email: 'existing@example.com', role: 'recruiter' };
+  const state = authReducer(
+    {
+      user: existingUser,
+      loading: false,
+      error: null,
+    },
+    fetchCurrentUser.pending(),
+  );
+
+  assert.deepEqual(state.user, existingUser);
+  assert.equal(state.loading, false);
+});
+
 test('fetchCurrentUser failure resets authenticated user to null', async () => {
   api.get = async () => {
     throw new Error('unauthorized');

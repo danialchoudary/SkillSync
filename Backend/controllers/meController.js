@@ -7,6 +7,7 @@ import {
   toCurrentUserResponse,
   toUpdatedUserResponse,
   updateCurrentUser,
+  updateCurrentUserPassword,
 } from '../services/meService.js';
 
 function ensureAuthenticated(req, res) {
@@ -87,6 +88,29 @@ export async function updateUserProfile(req, res) {
     return res.json(toUpdatedUserResponse(user));
   } catch (err) {
     return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+export async function updateUserPassword(req, res) {
+  if (!ensureAuthenticated(req, res)) return;
+
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const result = await updateCurrentUserPassword(req.user.id, currentPassword, newPassword);
+
+    if (result.status === 'not_found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (result.status === 'invalid_current_password') {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    return res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Update password error:', err);
+    return res.status(500).json({ error: 'Failed to update password. Please try again.' });
   }
 }
 

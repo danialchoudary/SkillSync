@@ -23,6 +23,10 @@ export function updateMe(payload) {
   return api.patch('/me', payload);
 }
 
+export function updatePassword(payload) {
+  return api.patch('/me/password', payload);
+}
+
 export function uploadResume(file) {
   const formData = new FormData();
   formData.append('file', file);

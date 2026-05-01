@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaUser, FaBuilding } from 'react-icons/fa';
+import { FaUser, FaBuilding, FaSignOutAlt } from 'react-icons/fa';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
@@ -11,6 +11,7 @@ export default function Topbar({ user = {}, notifications }) {
   const location = useLocation();
   const dispatch = useDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const isRecruiter = user?.role === 'recruiter';
   const isAdmin = user?.role === 'admin';
 
@@ -36,12 +37,21 @@ export default function Topbar({ user = {}, notifications }) {
     navigate(path);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setMobileMenuOpen(false);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     await dispatch(logout());
     localStorage.clear();
     sessionStorage.clear();
     navigate('/login');
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   const mobileLinks = isRecruiter
@@ -180,6 +190,60 @@ export default function Topbar({ user = {}, notifications }) {
                 </button>
               </div>
             </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLogoutModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-[70] bg-black/30 backdrop-blur-sm"
+              onClick={cancelLogout}
+            />
+
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="bg-[var(--color-surface)] rounded-xl shadow-[var(--shadow-lg)] p-6 w-full max-w-sm"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--color-danger-bg)] flex items-center justify-center">
+                  <FaSignOutAlt className="text-lg text-[var(--color-danger)]" />
+                </div>
+
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1 text-center">
+                  Sign out
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)] mb-6 text-center">
+                  Are you sure you want to sign out?
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="flex-1 px-4 py-2.5 bg-[var(--color-danger)] text-white rounded-lg font-medium text-sm hover:bg-[#E5342B] transition-colors"
+                    onClick={confirmLogout}
+                  >
+                    Sign out
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 px-4 py-2.5 bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] rounded-lg font-medium text-sm hover:bg-[var(--color-border)] transition-colors"
+                    onClick={cancelLogout}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

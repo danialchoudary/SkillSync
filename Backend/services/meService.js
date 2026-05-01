@@ -105,6 +105,25 @@ export async function updateCurrentUser(userId, updateObj) {
   ).select(profileUpdateSelectFields);
 }
 
+export async function updateCurrentUserPassword(userId, currentPassword, newPassword) {
+  const user = await User.findById(userId);
+  if (!user) {
+    return { status: 'not_found' };
+  }
+
+  if (user.password) {
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword || '');
+    if (!isCurrentPasswordValid) {
+      return { status: 'invalid_current_password' };
+    }
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  return { status: 'updated' };
+}
+
 export function toUpdatedUserResponse(user) {
   return {
     _id: user._id,

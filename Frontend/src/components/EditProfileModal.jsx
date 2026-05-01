@@ -5,7 +5,8 @@ import ProfilePictureSection from './EditProfileModal/ProfilePictureSection';
 import SkillsSection from './EditProfileModal/SkillsSection';
 import ExperienceSection from './EditProfileModal/ExperienceSection';
 import ResumeSection from './EditProfileModal/ResumeSection';
-import { X, Check, Save, AlertCircle } from 'lucide-react';
+import ChangePasswordSection from './ChangePasswordSection';
+import { X, Check, AlertCircle } from 'lucide-react';
 
 const validate = ({ name, skills, experience }) => {
   const errors = {};
@@ -245,6 +246,10 @@ export default function EditProfileModal({ open, onClose, user, onSaved }) {
               </div>
             )}
           </form>
+
+          <div className="mt-6">
+            <ChangePasswordSection />
+          </div>
         </div>
 
         {/* Footer Actions */}

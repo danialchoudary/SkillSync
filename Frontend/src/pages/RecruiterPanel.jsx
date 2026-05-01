@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React from 'react';
+import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { fetchCurrentUser } from '../features/auth/authSlice';
 import RecruiterSidebar from '../components/RecruiterSidebar';
 import JobForm from '../features/jobs/components/JobForm';
 import JobCard from '../features/jobs/components/JobCard';
@@ -17,7 +16,6 @@ import { Briefcase, Search, Calendar, Filter, Plus, ChevronDown } from 'lucide-r
 
 function RecruiterPanel() {
   const unreadCount = useSelector(state => state.unread.count);
-  const dispatch = useDispatch();
   const user = useSelector(state => state.auth.user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,10 +41,6 @@ function RecruiterPanel() {
     handleUpdateJob,
     showToast,
   } = useRecruiterJobsPanel(activeSection);
-
-  useEffect(() => {
-    dispatch(fetchCurrentUser());
-  }, [dispatch]);
 
   const handleSectionChange = (section) => {
     navigate(`/recruiter${section === 'dashboard' ? '' : '/' + section}`);
