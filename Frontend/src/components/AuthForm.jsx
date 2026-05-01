@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { register, login, verifyEmail, resendCode } from '../features/auth/authSlice';
+import { Link, useNavigate } from 'react-router-dom';
+import { register, login } from '../features/auth/authSlice';
 import RoleToggle from './AuthForm/RoleToggle';
 import JobSeekerFields from './AuthForm/JobSeekerFields';
 import RecruiterFields from './AuthForm/RecruiterFields';
@@ -11,15 +11,12 @@ import ConfirmPasswordField from './AuthForm/ConfirmPasswordField';
 import ErrorMessage from './AuthForm/ErrorMessage';
 import SubmitButton from './AuthForm/SubmitButton';
 import ForgotPasswordLink from './AuthForm/ForgotPasswordLink';
-import { KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { backendOrigin } from '../config/runtime.js';
 
 export default function AuthForm({ type = 'login', onSubmit, loading, error, onErrorClose }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [role, setRole] = useState('jobseeker');
-  const [step, setStep] = useState(1);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -59,14 +56,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     e.preventDefault();
     setPasswordError('');
 
-    if (step === 2) {
-      const resultAction = await dispatch(verifyEmail({ email: registeredEmail, code: verificationCode }));
-      if (verifyEmail.fulfilled.match(resultAction)) {
-        // Success
-      }
-      return;
-    }
-
     let data;
     if (type === 'register') {
       if (form.password !== form.confirmPassword) {
@@ -98,11 +87,11 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
       const resultAction = await dispatch(register(data));
       if (register.fulfilled.match(resultAction)) {
-        setRegisteredEmail(form.email);
-        setStep(2);
+        const params = new URLSearchParams({ email: resultAction.payload?.email || form.email });
         if (resultAction.payload?.emailSent === false) {
-          await dispatch(resendCode(form.email));
+          params.set('emailSent', 'false');
         }
+        navigate(`/verify-email?${params.toString()}`);
       }
     } else {
       data = {
@@ -113,66 +102,11 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
       const resultAction = await dispatch(login(data));
       if (login.rejected.match(resultAction) && resultAction.payload?.needsVerification) {
-        setRegisteredEmail(form.email);
-        setStep(2);
+        const params = new URLSearchParams({ email: resultAction.payload?.email || form.email });
+        navigate(`/verify-email?${params.toString()}`);
       }
     }
   };
-
-  const handleResendCode = async () => {
-    await dispatch(resendCode(registeredEmail));
-  };
-
-  if (step === 2) {
-    return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-[var(--color-accent-bg)] text-[var(--color-accent)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Mail size={32} />
-          </div>
-          <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">Verify your email</h2>
-          <p className="text-sm font-medium text-[var(--color-text-secondary)]">We've sent a code to {registeredEmail}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider ml-1">Verification Code</label>
-            <input
-              type="text"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              placeholder="000 000"
-              className="w-full px-4 py-4 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl focus:ring-4 focus:ring-[var(--color-accent)]/10 focus:border-[var(--color-accent)] text-center text-3xl tracking-[0.25em] font-bold outline-none transition-all placeholder:text-[var(--color-text-tertiary)]/30"
-              maxLength={6}
-              required
-            />
-          </div>
-          <SubmitButton loading={loading} text="Verify Account" />
-          <ErrorMessage error={error} onClose={onErrorClose} />
-        </form>
-
-        <div className="space-y-4 text-center">
-          <button
-            onClick={handleResendCode}
-            disabled={loading}
-            className="text-sm font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
-          >
-            Resend Code
-          </button>
-
-          <div className="flex items-center justify-center gap-4 text-xs font-bold text-[var(--color-text-tertiary)]">
-            <button
-              onClick={() => setStep(1)}
-              className="flex items-center gap-1 hover:text-[var(--color-text-secondary)] transition-colors"
-            >
-              <ArrowLeft size={12} />
-              <span>Back to {type === 'login' ? 'Login' : 'Details'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full animate-in fade-in duration-500">

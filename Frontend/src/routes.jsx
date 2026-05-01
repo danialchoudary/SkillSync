@@ -1,6 +1,7 @@
 import Applicants from './pages/Applicants';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import RecruiterPanel from './pages/RecruiterPanel';
@@ -55,6 +56,7 @@ const routes = [
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  { path: '/verify-email', element: <VerifyEmail /> },
   {
     path: '/onboarding',
     element: (

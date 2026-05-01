@@ -34,6 +34,25 @@ const loginSchema = Joi.object({
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
+const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 8000);
+
+async function sendVerificationEmailWithTimeout({ email, subject, message }) {
+  const emailPromise = sendEmail({ email, subject, message })
+    .then(() => ({ sent: true }))
+    .catch((error) => ({ sent: false, error }));
+
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        sent: false,
+        error: new Error(`Verification email timed out after ${EMAIL_SEND_TIMEOUT_MS}ms`),
+      });
+    }, EMAIL_SEND_TIMEOUT_MS);
+  });
+
+  return Promise.race([emailPromise, timeoutPromise]);
+}
+
 export const registerUser = async (req, res) => {
   try {
     console.log('[Auth] Register request body:', req.body);
@@ -105,11 +124,16 @@ export const registerUser = async (req, res) => {
     // Send verification email
     let emailSent = true;
     try {
-      await sendEmail({
+      const emailResult = await sendVerificationEmailWithTimeout({
         email: user.email,
         subject: 'SkillSync Email Verification',
         message: `<h1>Email Verification</h1><p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
       });
+
+      if (!emailResult.sent) {
+        throw emailResult.error;
+      }
+
       console.log('[Auth] Verification email sent to:', user.email);
     } catch (emailErr) {
       console.error('[Auth] Failed to send email:', emailErr);
@@ -203,11 +227,16 @@ export const resendVerificationCode = async (req, res) => {
 
     // Send email
     try {
-      await sendEmail({
+      const emailResult = await sendVerificationEmailWithTimeout({
         email: user.email,
         subject: 'SkillSync Verification Code (Resend)',
         message: `<h1>Email Verification</h1><p>Your new verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
       });
+
+      if (!emailResult.sent) {
+        throw emailResult.error;
+      }
+
       console.log('[Auth] Verification email resent to:', user.email);
       res.json({ message: 'Verification code resent successfully' });
     } catch (emailErr) {
