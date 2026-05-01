@@ -12,6 +12,7 @@ import ErrorMessage from './AuthForm/ErrorMessage';
 import SubmitButton from './AuthForm/SubmitButton';
 import ForgotPasswordLink from './AuthForm/ForgotPasswordLink';
 import { KeyRound, Mail, ArrowLeft } from 'lucide-react';
+import { backendOrigin } from '../config/runtime.js';
 
 export default function AuthForm({ type = 'login', onSubmit, loading, error, onErrorClose }) {
   const dispatch = useDispatch();
@@ -246,7 +247,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       </div>
 
       <a
-        href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/auth/google`}
+        href={`${backendOrigin}/auth/google`}
         className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-all hover:shadow-[var(--shadow-sm)]"
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5">

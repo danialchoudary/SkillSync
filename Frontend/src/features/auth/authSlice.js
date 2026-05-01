@@ -114,8 +114,9 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
       .addCase(login.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
       .addCase(logout.fulfilled, state => { state.user = null; })
-      .addCase(fetchCurrentUser.fulfilled, (state, action) => { state.user = action.payload; })
-      .addCase(fetchCurrentUser.rejected, state => { state.user = null; });
+      .addCase(fetchCurrentUser.pending, state => { state.loading = true; })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(fetchCurrentUser.rejected, state => { state.loading = false; state.user = null; });
   },
 });
 

@@ -10,7 +10,17 @@ import useGlobalUnread from './features/messages/useGlobalUnread';
 
 function AppRoutes() {
   const dispatch = useDispatch();
-  useEffect(() => { dispatch(fetchCurrentUser()); }, [dispatch]);
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const oauthToken = hashParams.get('token');
+
+    if (oauthToken) {
+      localStorage.setItem('token', oauthToken);
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+
+    dispatch(fetchCurrentUser());
+  }, [dispatch]);
   useGlobalUnread();
   return (
     <ErrorBoundary>

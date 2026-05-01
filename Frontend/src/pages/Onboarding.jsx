@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Briefcase, UserRound, ArrowRight } from 'lucide-react';
+import { backendOrigin } from '../config/runtime.js';
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -15,11 +16,14 @@ export default function Onboarding() {
     setError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/auth/complete-onboarding`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${backendOrigin}/auth/complete-onboarding`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({ role }),
       });
 
@@ -27,6 +31,10 @@ export default function Onboarding() {
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to complete onboarding');
+      }
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
       }
 
       // Success, reload page to trigger auth state update

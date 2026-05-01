@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
+import { getFrontendUrl } from '../utils/oauthUrls.js';
+import { getAuthCookieOptions } from '../utils/authCookies.js';
 
 const jobseekerSchema = Joi.object({
   name: Joi.string().min(2).max(50).required(),
@@ -161,7 +163,7 @@ export const verifyEmail = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
+    res.cookie('token', token, getAuthCookieOptions());
 
     res.json({
       message: 'Email verified successfully',
@@ -256,12 +258,7 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn });
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: cookieMaxAge,
-      secure: process.env.NODE_ENV === 'production'
-    });
+    res.cookie('token', token, getAuthCookieOptions(cookieMaxAge));
 
     res.json({ user: { name: user.name, email: user.email, role: user.role }, token });
   } catch (err) {
@@ -272,12 +269,7 @@ export const loginUser = async (req, res) => {
 };
 
 export const logoutUser = (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-  });
+  res.clearCookie('token', getAuthCookieOptions());
   res.json({ message: 'Logged out successfully' });
 };
 
@@ -291,30 +283,27 @@ export const googleAuthCallback = (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+      return res.redirect(getFrontendUrl('/login?error=auth_failed'));
     }
 
     // Issue JWT
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      secure: process.env.NODE_ENV === 'production'
-    });
+    res.cookie('token', token, getAuthCookieOptions(24 * 60 * 60 * 1000)); // 1 day
+
+    const tokenFragment = `#token=${encodeURIComponent(token)}`;
 
     // Check if user is fully registered
     if (user.role === 'pending') {
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/onboarding`);
+      return res.redirect(getFrontendUrl(`/onboarding${tokenFragment}`));
     }
 
     // Fully registered
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`);
+    return res.redirect(getFrontendUrl(`/dashboard${tokenFragment}`));
   } catch (err) {
     console.error('Google Auth Callback Error:', err);
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=server_error`);
+    return res.redirect(getFrontendUrl('/login?error=server_error'));
   }
 };
 
@@ -339,12 +328,7 @@ export const completeOnboarding = async (req, res) => {
 
     // Re-issue JWT with the correct role
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === 'production'
-    });
+    res.cookie('token', token, getAuthCookieOptions(24 * 60 * 60 * 1000));
 
     res.json({ message: 'Onboarding completed successfully', user: { name: user.name, email: user.email, role: user.role }, token });
   } catch (err) {
