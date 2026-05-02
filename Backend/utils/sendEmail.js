@@ -6,26 +6,68 @@ dotenv.config();
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const RETRY_DELAYS_MS = [0, 1500, 4000];
 
-const createTransporter = () => {
+function getEmailSettings() {
     const host = process.env.EMAIL_HOST;
     const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    let pass = process.env.EMAIL_PASS;
 
     if (!host) throw new Error('EMAIL_HOST not set');
     if (!user || !pass) throw new Error('EMAIL_USER/EMAIL_PASS not set');
 
+    if (host.includes('gmail.com')) {
+        pass = pass.replace(/\s+/g, '');
+    }
+
+    return { host, user, pass };
+}
+
+function uniqueConfigs(configs) {
+    const seen = new Set();
+    return configs.filter((config) => {
+        const key = `${config.service || config.host}:${config.port || ''}:${config.secure || false}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function buildTransportConfigs() {
+    const { host } = getEmailSettings();
     const port = Number(process.env.EMAIL_PORT || 587);
     const secure = process.env.EMAIL_SECURE
         ? process.env.EMAIL_SECURE === 'true'
         : port === 465;
 
+    const configured = { host, port, secure };
+    const configs = [];
+
+    if (host.includes('gmail.com')) {
+        configs.push(
+            { host: 'smtp.gmail.com', port: 465, secure: true },
+            configured,
+            { host: 'smtp.gmail.com', port: 587, secure: false },
+            { service: 'gmail' },
+        );
+    } else {
+        configs.push(configured);
+    }
+
+    return uniqueConfigs(configs);
+}
+
+function describeConfig(config) {
+    if (config.service) return `service:${config.service}`;
+    return `${config.host}:${config.port}`;
+}
+
+const createTransporter = (transportConfig) => {
+    const { user, pass } = getEmailSettings();
+
     return nodemailer.createTransport({
-        host,
-        port,
-        secure, // true for 465, false for other ports
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
+        ...transportConfig,
+        connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT_MS || 5000),
+        greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT_MS || 5000),
+        socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT_MS || 10000),
         auth: {
             user,
             pass,
@@ -34,13 +76,35 @@ const createTransporter = () => {
 };
 
 export const verifyEmailTransport = async () => {
-    const transporter = createTransporter();
-    await transporter.verify();
+    let lastErr = null;
+    const tried = [];
+
+    for (const config of buildTransportConfigs()) {
+        const transporter = createTransporter(config);
+        tried.push(describeConfig(config));
+
+        try {
+            await transporter.verify();
+            return;
+        } catch (err) {
+            lastErr = err;
+        } finally {
+            if (typeof transporter.close === 'function') {
+                transporter.close();
+            }
+        }
+    }
+
+    if (lastErr) {
+        lastErr.message = `${lastErr.message} (tried ${tried.join(', ')})`;
+    }
+    throw lastErr || new Error('Email transport verification failed');
 };
 
 const sendEmail = async (options) => {
+    const { user } = getEmailSettings();
     const mailOptions = {
-        from: `"SkillSync Support" <${process.env.EMAIL_USER}>`,
+        from: `"SkillSync Support" <${user}>`,
         to: options.email,
         subject: options.subject,
         html: options.message,
@@ -53,36 +117,38 @@ const sendEmail = async (options) => {
             await sleep(delay);
         }
 
-        const transporter = createTransporter();
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            const accepted = Array.isArray(info?.accepted) ? info.accepted : [];
-            const rejected = Array.isArray(info?.rejected) ? info.rejected : [];
+        for (const config of buildTransportConfigs()) {
+            const transporter = createTransporter(config);
+            try {
+                const info = await transporter.sendMail(mailOptions);
+                const accepted = Array.isArray(info?.accepted) ? info.accepted : [];
+                const rejected = Array.isArray(info?.rejected) ? info.rejected : [];
 
-            if (accepted.length === 0 && rejected.length > 0) {
-                const error = new Error('Email rejected by SMTP server');
-                error.code = 'EENVELOPE';
-                throw error;
-            }
+                if (accepted.length === 0 && rejected.length > 0) {
+                    const error = new Error('Email rejected by SMTP server');
+                    error.code = 'EENVELOPE';
+                    throw error;
+                }
 
-            return;
-        } catch (err) {
-            lastErr = err;
-            const code = String(err?.code || '');
-            const msg = String(err?.message || '').toLowerCase();
-            const isConfigError =
-                msg.includes('not set') ||
-                code === 'EAUTH' ||
-                code === 'EENVELOPE';
+                return;
+            } catch (err) {
+                lastErr = err;
+                const code = String(err?.code || '');
+                const msg = String(err?.message || '').toLowerCase();
+                const isConfigError =
+                    msg.includes('not set') ||
+                    code === 'EAUTH' ||
+                    code === 'EENVELOPE';
 
-            if (isConfigError) {
-                break;
+                if (isConfigError) {
+                    throw lastErr;
+                }
+            } finally {
+                if (typeof transporter.close === 'function') {
+                    transporter.close();
+                }
             }
-        } finally {
-            if (typeof transporter.close === 'function') {
-                transporter.close();
-            }
-        }
+        }        
     }
 
     throw lastErr || new Error('Failed to send email');

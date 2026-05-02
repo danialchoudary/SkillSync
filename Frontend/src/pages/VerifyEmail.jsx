@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { clearError, resendCode, verifyEmail } from '../features/auth/authSlice';
 
 function getDestinationForRole(role) {
@@ -20,10 +20,12 @@ export default function VerifyEmail() {
   const emailSent = searchParams.get('emailSent') !== 'false';
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
-  const [notice, setNotice] = useState(
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState('');
+  const [notice] = useState(
     emailSent
-      ? 'Enter the verification code sent to your email.'
-      : 'Your account was created, but the email could not be sent automatically. Use Resend Code.'
+      ? 'Enter the 6-digit code sent to your email.'
+      : null
   );
 
   useEffect(() => {
@@ -40,10 +42,14 @@ export default function VerifyEmail() {
   };
 
   const handleResend = async () => {
+    setResendSuccess(false);
+    setResendError('');
     const resultAction = await dispatch(resendCode(email));
 
     if (resendCode.fulfilled.match(resultAction)) {
-      setNotice('Verification code sent. Please check your email.');
+      setResendSuccess(true);
+    } else {
+      setResendError(resultAction.payload || 'Failed to resend code. Please try again.');
     }
   };
 
@@ -63,10 +69,30 @@ export default function VerifyEmail() {
             <h1 className="text-xl font-semibold text-[var(--color-text-primary)] mb-1">
               Verify your email
             </h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              {notice}
-            </p>
+            {notice && (
+              <p className="text-sm text-[var(--color-text-secondary)]">{notice}</p>
+            )}
           </div>
+
+          {/* Warning banner when email wasn't sent initially */}
+          {!emailSent && !resendSuccess && (
+            <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                The verification email could not be delivered automatically. Click <strong>Resend Code</strong> below to try again.
+              </p>
+            </div>
+          )}
+
+          {/* Resend success banner */}
+          {resendSuccess && (
+            <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <CheckCircle2 size={16} className="text-green-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                Code sent! Check your inbox (and spam folder) for a new 6-digit code.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             <div className="space-y-1.5">
@@ -97,9 +123,17 @@ export default function VerifyEmail() {
               />
             </div>
 
+            {/* Verify error */}
             {error && (
               <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 rounded-lg px-3 py-2">
                 {error}
+              </p>
+            )}
+
+            {/* Resend error */}
+            {resendError && (
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                {resendError}
               </p>
             )}
 
@@ -118,13 +152,19 @@ export default function VerifyEmail() {
               )}
             </button>
 
+            {/* Resend button — prominent (filled) when email wasn't sent, subtle otherwise */}
             <button
               type="button"
               onClick={handleResend}
               disabled={loading || !email}
-              className="w-full text-sm font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+              className={`w-full flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                !emailSent && !resendSuccess
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white text-sm shadow-sm'
+                  : 'text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]'
+              }`}
             >
-              Resend Code
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Sending...' : 'Resend Code'}
             </button>
           </form>
 

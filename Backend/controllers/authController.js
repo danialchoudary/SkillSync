@@ -34,7 +34,7 @@ const loginSchema = Joi.object({
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
-const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 8000);
+const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 15000);
 
 async function sendVerificationEmailWithTimeout({ email, subject, message }) {
   const emailPromise = sendEmail({ email, subject, message })
@@ -123,6 +123,7 @@ export const registerUser = async (req, res) => {
 
     // Send verification email
     let emailSent = true;
+    let emailErrorCode = null;
     try {
       const emailResult = await sendVerificationEmailWithTimeout({
         email: user.email,
@@ -136,16 +137,27 @@ export const registerUser = async (req, res) => {
 
       console.log('[Auth] Verification email sent to:', user.email);
     } catch (emailErr) {
-      console.error('[Auth] Failed to send email:', emailErr);
+      emailErrorCode = emailErr?.code || null;
+      const isAuthError = emailErrorCode === 'EAUTH' || String(emailErr?.message || '').toLowerCase().includes('invalid login');
+      if (isAuthError) {
+        console.error('\n[Auth] ============================================================');
+        console.error('[Auth] CRITICAL: Gmail SMTP authentication failed (EAUTH).');
+        console.error('[Auth] The EMAIL_PASS app password is likely invalid or expired.');
+        console.error('[Auth] Fix: Generate a new Gmail App Password and update EMAIL_PASS.');
+        console.error('[Auth] ============================================================\n');
+      } else {
+        console.error('[Auth] Failed to send verification email:', emailErr.message);
+      }
       emailSent = false;
     }
 
     res.status(201).json({
       message: emailSent
         ? 'Registration successful. Please check your email for the verification code.'
-        : 'Registration successful, but we could not send the verification email right now. Please click "Resend Verification Code".',
+        : 'Registration successful, but the verification email could not be sent. Please use the Resend Code button.',
       email: user.email,
-      emailSent
+      emailSent,
+      emailErrorCode
     });
 
   } catch (err) {
@@ -240,8 +252,20 @@ export const resendVerificationCode = async (req, res) => {
       console.log('[Auth] Verification email resent to:', user.email);
       res.json({ message: 'Verification code resent successfully' });
     } catch (emailErr) {
-      console.error('[Auth] Failed to resend email:', emailErr);
-      res.status(500).json({ error: 'Failed to send verification email' });
+      const code = emailErr?.code || null;
+      const isAuthError = code === 'EAUTH' || String(emailErr?.message || '').toLowerCase().includes('invalid login');
+      if (isAuthError) {
+        console.error('\n[Auth] ============================================================');
+        console.error('[Auth] CRITICAL: Gmail SMTP authentication failed (EAUTH) on resend.');
+        console.error('[Auth] Fix: Generate a new Gmail App Password and update EMAIL_PASS.');
+        console.error('[Auth] ============================================================\n');
+        return res.status(503).json({
+          error: 'Email service is temporarily unavailable. Please try again later or contact support.',
+          emailErrorCode: code
+        });
+      }
+      console.error('[Auth] Failed to resend email:', emailErr.message);
+      res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
     }
 
   } catch (err) {
