@@ -19,6 +19,7 @@ function readRuntimeEnv(key) {
 
 const configuredBaseUrl = readRuntimeEnv('VITE_API_BASE_URL');
 const configuredApiUrl = readRuntimeEnv('VITE_API_URL');
+const configuredSocketUrl = readRuntimeEnv('VITE_SOCKET_URL');
 
 // Fallback logic for production if env vars are missing
 let fallbackOrigin = DEFAULT_BACKEND_ORIGIN;
@@ -34,3 +35,4 @@ if (resolvedBaseUrl.endsWith('/')) {
 }
 
 export const apiBaseUrl = resolvedBaseUrl;
+export const socketUrl = configuredSocketUrl || resolvedBaseUrl;
