@@ -1,19 +1,21 @@
+import { trimTrailingSlash } from '../utils/urlUtils';
+
 const DEFAULT_BACKEND_ORIGIN = 'http://localhost:5000';
 
 function readRuntimeEnv(key) {
-  return (
-    import.meta.env?.[key] ||
-    globalThis?.process?.env?.[key] ||
-    ''
-  );
-}
-
-function trimTrailingSlash(value) {
-  return value.replace(/\/+$/, '');
-}
-
-function dropApiSuffix(value) {
-  return value.replace(/\/api\/?$/, '');
+  if (typeof window !== 'undefined' && window._env_ && window._env_[key]) {
+    return window._env_[key];
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  // Vite specific
+  // @ts-ignore
+  const viteEnv = import.meta.env;
+  if (viteEnv && viteEnv[key]) {
+    return viteEnv[key];
+  }
+  return '';
 }
 
 const configuredBaseUrl = readRuntimeEnv('VITE_API_BASE_URL');
@@ -23,7 +25,7 @@ const configuredApiUrl = readRuntimeEnv('VITE_API_URL');
 let fallbackOrigin = DEFAULT_BACKEND_ORIGIN;
 if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
   // Try to find a matching Render backend (standard pattern)
-  fallbackOrigin = 'https://skillsync-api.onrender.com'; // Adjust this if your render name is different
+  fallbackOrigin = 'https://skillsync-backend-so6r.onrender.com'; 
 }
 
 const resolvedBaseUrl = trimTrailingSlash(
@@ -31,13 +33,3 @@ const resolvedBaseUrl = trimTrailingSlash(
 );
 
 export const apiBaseUrl = resolvedBaseUrl;
-export const backendOrigin = dropApiSuffix(resolvedBaseUrl);
-export const socketUrl = backendOrigin;
-
-export function toBackendUrl(url) {
-  if (!url) return null;
-  if (url.startsWith('http') || url.startsWith('blob:')) return url;
-  const cleanPath = url.startsWith('/') ? url : `/${url}`;
-  return `${backendOrigin}${cleanPath}`;
-}
-

@@ -43,10 +43,10 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
+            { host: 'smtp.gmail.com', port: 587, secure: false },
             { service: 'gmail' },
             { host: 'smtp.gmail.com', port: 465, secure: true },
             configured,
-            { host: 'smtp.gmail.com', port: 587, secure: false },
         );
     } else {
         configs.push(configured);
