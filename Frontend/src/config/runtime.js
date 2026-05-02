@@ -35,6 +35,7 @@ if (resolvedBaseUrl.endsWith('/')) {
 }
 
 export const apiBaseUrl = resolvedBaseUrl;
+export const backendOrigin = resolvedBaseUrl; // Added missing backendOrigin export
 export const socketUrl = configuredSocketUrl || resolvedBaseUrl;
 
 // Added missing toBackendUrl helper
