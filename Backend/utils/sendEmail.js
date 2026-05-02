@@ -43,7 +43,7 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
-            { host: 'smtp.gmail.com', port: 587, secure: false },
+            { host: 'smtp.gmail.com', port: 587, secure: false }, // Render priority
             { service: 'gmail' },
             { host: 'smtp.gmail.com', port: 465, secure: true },
             configured,
@@ -65,9 +65,9 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...transportConfig,
-        connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT_MS || 15000),
-        greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT_MS || 15000),
-        socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT_MS || 30000),
+        connectionTimeout: 30000, // 30s for Render network lag
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
         auth: {
             user,
             pass,

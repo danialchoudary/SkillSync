@@ -265,7 +265,11 @@ export const resendVerificationCode = async (req, res) => {
         });
       }
       console.error('[Auth] Failed to resend email:', emailErr.message);
-      res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
+      res.status(500).json({ 
+        error: 'Failed to send verification email. Please try again.',
+        details: emailErr.message,
+        emailErrorCode: code
+      });
     }
 
   } catch (err) {
