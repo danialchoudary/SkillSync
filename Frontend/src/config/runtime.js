@@ -36,3 +36,11 @@ if (resolvedBaseUrl.endsWith('/')) {
 
 export const apiBaseUrl = resolvedBaseUrl;
 export const socketUrl = configuredSocketUrl || resolvedBaseUrl;
+
+// Added missing toBackendUrl helper
+export const toBackendUrl = (path) => {
+  if (!path) return resolvedBaseUrl;
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${resolvedBaseUrl}${cleanPath}`;
+};
