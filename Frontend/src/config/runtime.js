@@ -19,8 +19,15 @@ function dropApiSuffix(value) {
 const configuredBaseUrl = readRuntimeEnv('VITE_API_BASE_URL');
 const configuredApiUrl = readRuntimeEnv('VITE_API_URL');
 
+// Fallback logic for production if env vars are missing
+let fallbackOrigin = DEFAULT_BACKEND_ORIGIN;
+if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+  // Try to find a matching Render backend (standard pattern)
+  fallbackOrigin = 'https://skillsync-api.onrender.com'; // Adjust this if your render name is different
+}
+
 const resolvedBaseUrl = trimTrailingSlash(
-  configuredBaseUrl || configuredApiUrl || DEFAULT_BACKEND_ORIGIN,
+  configuredBaseUrl || configuredApiUrl || fallbackOrigin,
 );
 
 export const apiBaseUrl = resolvedBaseUrl;

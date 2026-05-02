@@ -37,6 +37,11 @@ export function getFrontendUrl(path = '') {
 
 export function getGoogleCallbackUrl(req) {
   const requestOrigin = getRequestOrigin(req);
+  
+  // Auto-detect Render production environment
+  if (requestOrigin && requestOrigin.includes('.onrender.com')) {
+    return joinUrl(requestOrigin, GOOGLE_CALLBACK_PATH);
+  }
 
   if (process.env.GOOGLE_CALLBACK_URL) {
     const configuredCallbackUrl = trimTrailingSlash(process.env.GOOGLE_CALLBACK_URL);

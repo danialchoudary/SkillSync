@@ -43,10 +43,10 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
+            { service: 'gmail' },
             { host: 'smtp.gmail.com', port: 465, secure: true },
             configured,
             { host: 'smtp.gmail.com', port: 587, secure: false },
-            { service: 'gmail' },
         );
     } else {
         configs.push(configured);
@@ -65,9 +65,9 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...transportConfig,
-        connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT_MS || 5000),
-        greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT_MS || 5000),
-        socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT_MS || 10000),
+        connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT_MS || 15000),
+        greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT_MS || 15000),
+        socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT_MS || 30000),
         auth: {
             user,
             pass,
