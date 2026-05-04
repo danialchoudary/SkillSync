@@ -43,9 +43,9 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
-            { host: 'smtp.gmail.com', port: 587, secure: false }, // Render priority
-            { service: 'gmail' },
-            { host: 'smtp.gmail.com', port: 465, secure: true },
+            { service: 'gmail' }, // Most reliable for Gmail
+            { host: 'smtp.gmail.com', port: 587, secure: false }, // Standard STARTTLS
+            { host: 'smtp.gmail.com', port: 465, secure: true },  // Standard SSL
             configured,
         );
     } else {
@@ -65,9 +65,9 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...transportConfig,
-        connectionTimeout: 30000, // 30s for Render network lag
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
+        connectionTimeout: 15000, // 15s is enough, helps failover faster
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
         auth: {
             user,
             pass,
@@ -110,17 +110,27 @@ const sendEmail = async (options) => {
         html: options.message,
     };
 
+    console.log(`[Email] Starting send attempt to ${options.email}`);
     let lastErr = null;
     for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
         const delay = RETRY_DELAYS_MS[attempt];
         if (delay > 0) {
+            console.log(`[Email] Retry attempt ${attempt}, waiting ${delay}ms...`);
             await sleep(delay);
         }
 
-        for (const config of buildTransportConfigs()) {
+        const configs = buildTransportConfigs();
+        for (let i = 0; i < configs.length; i++) {
+            const config = configs[i];
+            const configDesc = describeConfig(config);
+            console.log(`[Email] Trying config ${i + 1}/${configs.length}: ${configDesc}`);
+            
             const transporter = createTransporter(config);
             try {
+                const startTime = Date.now();
                 const info = await transporter.sendMail(mailOptions);
+                const duration = Date.now() - startTime;
+                
                 const accepted = Array.isArray(info?.accepted) ? info.accepted : [];
                 const rejected = Array.isArray(info?.rejected) ? info.rejected : [];
 
@@ -130,9 +140,11 @@ const sendEmail = async (options) => {
                     throw error;
                 }
 
+                console.log(`[Email] Success! Sent via ${configDesc} in ${duration}ms`);
                 return;
             } catch (err) {
                 lastErr = err;
+                console.warn(`[Email] Failed via ${configDesc}: ${err.message} (code: ${err.code})`);
                 const code = String(err?.code || '');
                 const msg = String(err?.message || '').toLowerCase();
                 const isConfigError =
@@ -141,6 +153,7 @@ const sendEmail = async (options) => {
                     code === 'EENVELOPE';
 
                 if (isConfigError) {
+                    console.error(`[Email] Fatal config error, stopping: ${err.message}`);
                     throw lastErr;
                 }
             } finally {
@@ -151,6 +164,7 @@ const sendEmail = async (options) => {
         }        
     }
 
+    console.error(`[Email] All attempts failed. Last error: ${lastErr?.message}`);
     throw lastErr || new Error('Failed to send email');
 };
 

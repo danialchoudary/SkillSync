@@ -34,7 +34,7 @@ const loginSchema = Joi.object({
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
 
-const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 15000);
+const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 45000);
 
 async function sendVerificationEmailWithTimeout({ email, subject, message }) {
   const emailPromise = sendEmail({ email, subject, message })
