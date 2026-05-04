@@ -65,7 +65,8 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...transportConfig,
-        connectionTimeout: 15000, // 15s is enough, helps failover faster
+        family: 4, // Force IPv4 to avoid ENETUNREACH issues on some cloud platforms (like Render)
+        connectionTimeout: 15000, 
         greetingTimeout: 15000,
         socketTimeout: 30000,
         auth: {
