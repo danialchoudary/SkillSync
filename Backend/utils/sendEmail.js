@@ -49,9 +49,9 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
-            { service: 'gmail' }, // Most reliable for Gmail
+            { host: 'smtp.gmail.com', port: 465, secure: true },  // Standard SSL (Port 465 is often more stable in cloud)
             { host: 'smtp.gmail.com', port: 587, secure: false }, // Standard STARTTLS
-            { host: 'smtp.gmail.com', port: 465, secure: true },  // Standard SSL
+            { service: 'gmail' }, // Last resort
             configured,
         );
     } else {
@@ -69,16 +69,26 @@ function describeConfig(config) {
 const createTransporter = (transportConfig) => {
     const { user, pass } = getEmailSettings();
 
+    // Deep clone to avoid mutating the original config
+    const config = { ...transportConfig };
+
     return nodemailer.createTransport({
-        ...transportConfig,
-        family: 4, // Force IPv4 to avoid ENETUNREACH issues on some cloud platforms (like Render)
-        connectionTimeout: 15000, 
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
+        ...config,
+        family: 4, 
+        // Force IPv4 for the specific host if provided
+        host: config.host ? config.host : undefined,
+        connectionTimeout: 20000, 
+        greetingTimeout: 20000,
+        socketTimeout: 40000,
         auth: {
             user,
             pass,
         },
+        // Additional security/stability flags for cloud environments
+        tls: {
+            rejectUnauthorized: false, // Helps with some proxy/firewall setups
+            servername: config.host || 'smtp.gmail.com'
+        }
     });
 };
 
