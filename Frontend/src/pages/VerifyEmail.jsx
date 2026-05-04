@@ -49,7 +49,10 @@ export default function VerifyEmail() {
     if (resendCode.fulfilled.match(resultAction)) {
       setResendSuccess(true);
     } else {
-      setResendError(resultAction.payload || 'Failed to resend code. Please try again.');
+      const payload = resultAction.payload;
+      const baseMsg = typeof payload === 'string' ? payload : (payload?.error || 'Failed to resend code');
+      const detailMsg = payload?.details ? ` (${payload.details})` : '';
+      setResendError(`${baseMsg}${detailMsg}`);
     }
   };
 
@@ -74,7 +77,6 @@ export default function VerifyEmail() {
             )}
           </div>
 
-          {/* Warning banner when email wasn't sent initially */}
           {!emailSent && !resendSuccess && (
             <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
@@ -84,7 +86,6 @@ export default function VerifyEmail() {
             </div>
           )}
 
-          {/* Resend success banner */}
           {resendSuccess && (
             <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
               <CheckCircle2 size={16} className="text-green-500 mt-0.5 shrink-0" />
@@ -123,14 +124,12 @@ export default function VerifyEmail() {
               />
             </div>
 
-            {/* Verify error */}
             {error && (
               <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
 
-            {/* Resend error */}
             {resendError && (
               <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                 {resendError}
@@ -152,7 +151,6 @@ export default function VerifyEmail() {
               )}
             </button>
 
-            {/* Resend button — prominent (filled) when email wasn't sent, subtle otherwise */}
             <button
               type="button"
               onClick={handleResend}

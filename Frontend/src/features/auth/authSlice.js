@@ -9,26 +9,22 @@ export const register = createAsyncThunk('auth/register', async (data, { rejectW
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
-    // Return user or message; for verification flow, we might not get a user immediately if we wait for verification code
-    // But duplicate email check happens here.
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.error || 'Registration failed');
+    return rejectWithValue(err.response?.data || 'Registration failed');
   }
 });
 
 export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/verify-email', data);
-    // Store token in localStorage
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
     return res.data.user;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.error || 'Verification failed');
+    return rejectWithValue(err.response?.data || 'Verification failed');
   }
-
 });
 
 export const resendCode = createAsyncThunk('auth/resendCode', async (email, { rejectWithValue }) => {
@@ -36,14 +32,13 @@ export const resendCode = createAsyncThunk('auth/resendCode', async (email, { re
     const res = await api.post('/auth/resend-verification-code', { email });
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.error || 'Failed to resend code');
+    return rejectWithValue(err.response?.data || 'Failed to resend code');
   }
 });
 
 export const login = createAsyncThunk('auth/login', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/login', data);
-    // Store token in localStorage for Socket.IO access
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
@@ -57,12 +52,11 @@ export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValu
   try {
     await api.post('/auth/logout');
     disconnectSocket();
-    // Clear token from localStorage
     localStorage.removeItem('token');
     return null;
   } catch (err) {
     disconnectSocket();
-    localStorage.removeItem('token'); // Clear even on error
+    localStorage.removeItem('token');
     return rejectWithValue('Logout failed');
   }
 });
@@ -95,9 +89,6 @@ const authSlice = createSlice({
       .addCase(register.pending, state => { state.loading = true; state.error = null; })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        // If registration returns a user directly (old flow), set it. 
-        // If it returns a message (verification flow), we might not set user yet, or set a partial state.
-        // For now, let's assume we handle the "verification needed" state in the component using the returned message/email.
         if (action.payload.user) {
           state.user = action.payload.user;
         }
@@ -105,7 +96,6 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
       .addCase(verifyEmail.pending, state => { state.loading = true; state.error = null; })
       .addCase(verifyEmail.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
-
       .addCase(verifyEmail.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
       .addCase(resendCode.pending, state => { state.loading = true; state.error = null; })
       .addCase(resendCode.fulfilled, state => { state.loading = false; })
