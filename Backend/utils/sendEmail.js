@@ -74,6 +74,10 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...config,
+        // The ultimate way to force IPv4: a custom lookup function
+        lookup: (hostname, options, callback) => {
+            return dns.lookup(hostname, { family: 4 }, callback);
+        },
         family: 4, 
         // Force IPv4 for the specific host if provided
         host: config.host ? config.host : undefined,
@@ -86,7 +90,7 @@ const createTransporter = (transportConfig) => {
         },
         // Additional security/stability flags for cloud environments
         tls: {
-            rejectUnauthorized: false, // Helps with some proxy/firewall setups
+            rejectUnauthorized: false, 
             servername: config.host || 'smtp.gmail.com'
         }
     });
