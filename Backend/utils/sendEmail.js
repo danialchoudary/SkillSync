@@ -49,9 +49,10 @@ function buildTransportConfigs() {
 
     if (host.includes('gmail.com')) {
         configs.push(
-            { host: 'smtp.gmail.com', port: 465, secure: true },  // Standard SSL (Port 465 is often more stable in cloud)
-            { host: 'smtp.gmail.com', port: 587, secure: false }, // Standard STARTTLS
-            { service: 'gmail' }, // Last resort
+            // Use direct IPv4 address for smtp.gmail.com (74.125.143.108) to bypass DNS issues entirely
+            { host: '74.125.143.108', port: 465, secure: true, servername: 'smtp.gmail.com' }, 
+            { host: 'smtp.gmail.com', port: 465, secure: true },
+            { host: 'smtp.gmail.com', port: 587, secure: false },
             configured,
         );
     } else {
@@ -74,9 +75,18 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...config,
-        // The ultimate way to force IPv4: a custom lookup function
+        // The ultimate way to force IPv4: a custom lookup function with strict filtering
         lookup: (hostname, options, callback) => {
-            return dns.lookup(hostname, { family: 4 }, callback);
+            dns.lookup(hostname, { family: 4, all: true }, (err, addresses) => {
+                if (err) return callback(err);
+                // Filter and pick the first IPv4 address found
+                const ipv4 = addresses.find(a => a.family === 4);
+                if (ipv4) {
+                    callback(null, ipv4.address, 4);
+                } else {
+                    callback(new Error(`No IPv4 address found for ${hostname}`));
+                }
+            });
         },
         family: 4, 
         // Force IPv4 for the specific host if provided
