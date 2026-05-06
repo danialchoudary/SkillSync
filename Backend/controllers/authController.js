@@ -121,43 +121,27 @@ export const registerUser = async (req, res) => {
     await user.save();
     console.log('[Auth] User created successfully:', user._id);
 
-    // Send verification email
-    let emailSent = true;
-    let emailErrorCode = null;
-    try {
-      const emailResult = await sendVerificationEmailWithTimeout({
-        email: user.email,
-        subject: 'SkillSync Email Verification',
-        message: `<h1>Email Verification</h1><p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-      });
-
-      if (!emailResult.sent) {
-        throw emailResult.error;
-      }
-
-      console.log('[Auth] Verification email sent to:', user.email);
-    } catch (emailErr) {
-      emailErrorCode = emailErr?.code || null;
-      const isAuthError = emailErrorCode === 'EAUTH' || String(emailErr?.message || '').toLowerCase().includes('invalid login');
-      if (isAuthError) {
-        console.error('\n[Auth] ============================================================');
-        console.error('[Auth] CRITICAL: Gmail SMTP authentication failed (EAUTH).');
-        console.error('[Auth] The EMAIL_PASS app password is likely invalid or expired.');
-        console.error('[Auth] Fix: Generate a new Gmail App Password and update EMAIL_PASS.');
-        console.error('[Auth] ============================================================\n');
-      } else {
-        console.error('[Auth] Failed to send verification email:', emailErr.message);
-      }
-      emailSent = false;
-    }
-
-    res.status(201).json({
-      message: emailSent
-        ? 'Registration successful. Please check your email for the verification code.'
-        : 'Registration successful, but the verification email could not be sent. Please use the Resend Code button.',
+    // Send verification email in the background (don't await)
+    // This prevents frontend timeouts and makes registration feel instant
+    sendVerificationEmailWithTimeout({
       email: user.email,
-      emailSent,
-      emailErrorCode
+      subject: 'SkillSync Email Verification',
+      message: `<h1>Email Verification</h1><p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
+    }).then(result => {
+      if (result.sent) {
+        console.log('[Auth] Background verification email sent to:', user.email);
+      } else {
+        console.error('[Auth] Background verification email failed:', result.error?.message);
+      }
+    }).catch(err => {
+      console.error('[Auth] Background verification email fatal error:', err.message);
+    });
+
+    // Respond immediately to the user
+    res.status(201).json({
+      message: 'Registration successful. Please check your email for the verification code.',
+      email: user.email,
+      emailSent: true // Optimistic success
     });
 
   } catch (err) {
@@ -237,40 +221,22 @@ export const resendVerificationCode = async (req, res) => {
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    // Send email
-    try {
-      const emailResult = await sendVerificationEmailWithTimeout({
-        email: user.email,
-        subject: 'SkillSync Verification Code (Resend)',
-        message: `<h1>Email Verification</h1><p>Your new verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-      });
-
-      if (!emailResult.sent) {
-        throw emailResult.error;
+    // Send email in the background
+    sendVerificationEmailWithTimeout({
+      email: user.email,
+      subject: 'SkillSync Verification Code (Resend)',
+      message: `<h1>Email Verification</h1><p>Your new verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
+    }).then(result => {
+      if (result.sent) {
+        console.log('[Auth] Background verification email resent to:', user.email);
+      } else {
+        console.error('[Auth] Background verification email resend failed:', result.error?.message);
       }
+    }).catch(err => {
+      console.error('[Auth] Background verification email resend fatal error:', err.message);
+    });
 
-      console.log('[Auth] Verification email resent to:', user.email);
-      res.json({ message: 'Verification code resent successfully' });
-    } catch (emailErr) {
-      const code = emailErr?.code || null;
-      const isAuthError = code === 'EAUTH' || String(emailErr?.message || '').toLowerCase().includes('invalid login');
-      if (isAuthError) {
-        console.error('\n[Auth] ============================================================');
-        console.error('[Auth] CRITICAL: Gmail SMTP authentication failed (EAUTH) on resend.');
-        console.error('[Auth] Fix: Generate a new Gmail App Password and update EMAIL_PASS.');
-        console.error('[Auth] ============================================================\n');
-        return res.status(503).json({
-          error: 'Email service is temporarily unavailable. Please try again later or contact support.',
-          emailErrorCode: code
-        });
-      }
-      console.error('[Auth] Failed to resend email:', emailErr.message);
-      res.status(500).json({ 
-        error: 'Failed to send verification email. Please try again.',
-        details: emailErr.message,
-        emailErrorCode: code
-      });
-    }
+    res.json({ message: 'Verification code resent successfully' });
 
   } catch (err) {
     console.error('[Auth] Resend code error:', err);
