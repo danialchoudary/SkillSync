@@ -8,6 +8,7 @@ import {
   getApplicationAiMatch,
   getMyApplications,
   updateApplicationStatus,
+  generateAiCoverLetter,
 } from '../controllers/applicationsController.js';
 
 const upload = multer({
@@ -29,5 +30,6 @@ router.patch('/:id/status', authMiddleware, updateApplicationStatus);
 router.post('/apply', authMiddleware, jobSeekerOnly, upload.single('resume'), applyForJob);
 router.get('/mine', authMiddleware, jobSeekerOnly, getMyApplications);
 router.get('/:id/ai-match', authMiddleware, getApplicationAiMatch);
+router.post('/generate-cover-letter', authMiddleware, jobSeekerOnly, generateAiCoverLetter);
 
 export default router;

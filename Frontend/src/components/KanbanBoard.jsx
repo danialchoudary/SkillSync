@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     User,
     Mail,
@@ -8,14 +9,16 @@ import {
     XCircle,
     Search,
     Filter,
-    ChevronRight,
     MoreVertical,
     ArrowRight,
     Sparkles,
     Loader2,
     AlertCircle,
-    X
+    X,
+    Calendar,
+    MessageCircle
 } from 'lucide-react';
+import ScheduleInterviewModal from '../features/applicants/components/ScheduleInterviewModal';
 import { getImageUrl, getResumeUrl } from '../utils/urlHelper';
 import { getAIMatch } from '../services/applicationApi';
 import { getApplicationStatusLabel, normalizeApplicationStatus } from '../utils/applicationStatus';
@@ -28,7 +31,8 @@ const COLUMNS = [
     { id: 'rejected', title: 'Rejected', color: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)]', icon: XCircle }
 ];
 
-const ApplicantCard = ({ applicant, onStatusChange }) => {
+// onSchedule is passed down so the modal can be rendered at the KanbanBoard level
+const ApplicantCard = ({ applicant, onStatusChange, onSchedule, onMessage }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [aiMatch, setAiMatch] = useState(null);
     const [loadingAI, setLoadingAI] = useState(false);
@@ -134,47 +138,63 @@ const ApplicantCard = ({ applicant, onStatusChange }) => {
                 )}
             </div>
 
-            <div className="pt-3 border-t border-[var(--color-border)]">
+            <div className="pt-3 border-t border-[var(--color-border)] space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                    <span className="max-w-[150px] truncate px-2.5 py-1 rounded-lg bg-[var(--color-surface-secondary)] text-[10px] font-bold text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+                    <span className="min-w-0 max-w-[120px] truncate px-2.5 py-1 rounded-lg bg-[var(--color-surface-secondary)] text-[10px] font-bold text-[var(--color-text-secondary)] border border-[var(--color-border)]">
                         {applicant.jobId?.title || 'Job'}
                     </span>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="grid flex-1 grid-cols-2 gap-1.5 min-w-0">
+                        <button
+                            onClick={() => onMessage(applicant)}
+                            className="flex w-full min-w-0 items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-accent)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-all text-[10px] font-bold whitespace-nowrap"
+                        >
+                            <MessageCircle size={10} className="shrink-0" />
+                            Message
+                        </button>
+                        {/* Schedule button — only visible in Interview column */}
+                        {applicantStatus === 'interview' && (
+                            <button
+                                onClick={() => onSchedule(applicant)}
+                                className="flex w-full min-w-0 items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-accent)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-all text-[10px] font-bold whitespace-nowrap"
+                            >
+                                <Calendar size={10} className="shrink-0" />
+                                Schedule
+                            </button>
+                        )}
                         {aiMatch ? (
-                            <div className="flex items-center gap-1.5">
-                                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold ${getScoreColor(aiMatch.score)}`}>
+                            <div className="col-span-2 flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] min-w-0">
+                                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold ${getScoreColor(aiMatch.score)} shrink-0`}>
                                     <Sparkles size={10} className="text-current" />
                                     {aiMatch.score}%
                                 </div>
                                 <button
                                     onClick={() => setAiMatch(null)}
-                                    className="p-1 hover:bg-[var(--color-surface-secondary)] rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] transition-colors"
+                                    className="p-1 hover:bg-[var(--color-surface)] rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] transition-colors shrink-0"
                                     title="Clear AI analysis"
                                 >
                                     <X size={12} />
                                 </button>
                             </div>
                         ) : loadingAI ? (
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-accent)] px-2 py-1">
-                                <Loader2 size={12} className="animate-spin" />
-                                Analyzing...
+                            <div className="col-span-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--color-accent-bg)] text-[10px] font-bold text-[var(--color-accent)] min-w-0">
+                                <Loader2 size={12} className="animate-spin shrink-0" />
+                                <span className="truncate">Analyzing...</span>
                             </div>
                         ) : errorAI ? (
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-danger)] px-2 py-1" title={errorAI}>
-                                <AlertCircle size={12} />
-                                Error
+                            <div className="col-span-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--color-danger-bg)] text-[10px] font-bold text-[var(--color-danger)] min-w-0" title={errorAI}>
+                                <AlertCircle size={12} className="shrink-0" />
+                                <span className="truncate">Error</span>
                             </div>
                         ) : (
                             <button
                                 onClick={handleAIMatch}
-                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-accent-bg)] text-[var(--color-accent)] hover:bg-indigo-100 hover:text-indigo-700 border border-[var(--color-accent)]/10 transition-all text-[10px] font-bold group/ai"
+                                className="col-span-2 flex w-full min-w-0 items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-accent-bg)] text-[var(--color-accent)] hover:bg-indigo-100 hover:text-indigo-700 border border-[var(--color-accent)]/10 transition-all text-[10px] font-bold group/ai whitespace-nowrap"
                             >
-                                <Sparkles size={10} className="group-hover/ai:animate-pulse" />
-                                Match
+                                <Sparkles size={10} className="group-hover/ai:animate-pulse shrink-0" />
+                                <span className="truncate">Match</span>
                             </button>
                         )}
-                        <ChevronRight size={14} className="text-[var(--color-text-tertiary)] group-hover:translate-x-0.5 transition-transform" />
                     </div>
                 </div>
 
@@ -188,7 +208,7 @@ const ApplicantCard = ({ applicant, onStatusChange }) => {
     );
 };
 
-const KanbanColumn = ({ column, applicants, onStatusChange }) => {
+const KanbanColumn = ({ column, applicants, onStatusChange, onSchedule, onMessage }) => {
     return (
         <div className="flex flex-col w-80 min-w-80 max-w-80 bg-[var(--color-bg)] rounded-2xl border border-[var(--color-border)] h-full max-h-[85vh] snap-start shadow-[var(--shadow-sm)]">
             <div className="p-4 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] rounded-t-2xl sticky top-0 z-10">
@@ -210,6 +230,8 @@ const KanbanColumn = ({ column, applicants, onStatusChange }) => {
                             key={app._id}
                             applicant={app}
                             onStatusChange={onStatusChange}
+                            onSchedule={onSchedule}
+                            onMessage={onMessage}
                         />
                     ))
                 ) : (
@@ -224,13 +246,19 @@ const KanbanColumn = ({ column, applicants, onStatusChange }) => {
 };
 
 export default function KanbanBoard({ applicants, onStatusChange }) {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [mobileStatus, setMobileStatus] = useState(COLUMNS[0].id);
+    // Modal state lives here — outside all overflow containers
+    const [schedulingApplicant, setSchedulingApplicant] = useState(null);
 
-    const filteredApplicants = applicants.filter((app) =>
-        app.jobSeekerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.jobId?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredApplicants = applicants.filter((app) => {
+        const search = searchTerm.toLowerCase();
+        const applicantName = String(app.jobSeekerId?.name || '').toLowerCase();
+        const jobTitle = String(app.jobId?.title || '').toLowerCase();
+
+        return applicantName.includes(search) || jobTitle.includes(search);
+    });
 
     const appsByStatus = useMemo(() => {
         const grouped = COLUMNS.reduce((acc, column) => {
@@ -250,6 +278,12 @@ export default function KanbanBoard({ applicants, onStatusChange }) {
 
     const getAppsByStatus = (status) => appsByStatus[status] || [];
     const mobileApplicants = getAppsByStatus(mobileStatus);
+
+    const handleMessageApplicant = (applicant) => {
+        const receiverId = applicant.jobSeekerId?._id || applicant.jobSeekerId?.id || applicant.jobSeekerId;
+        if (!receiverId) return;
+        navigate(`/recruiter/message?userId=${receiverId}`);
+    };
 
     return (
         <div className="flex flex-col h-full min-h-0 w-full min-w-0 space-y-6 overflow-x-hidden">
@@ -310,11 +344,13 @@ export default function KanbanBoard({ applicants, onStatusChange }) {
                 <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
                     {mobileApplicants.length > 0 ? (
                         mobileApplicants.map((applicant) => (
-                            <ApplicantCard
-                                key={applicant._id}
-                                applicant={applicant}
-                                onStatusChange={onStatusChange}
-                            />
+                        <ApplicantCard
+                            key={applicant._id}
+                            applicant={applicant}
+                            onStatusChange={onStatusChange}
+                            onSchedule={setSchedulingApplicant}
+                            onMessage={handleMessageApplicant}
+                        />
                         ))
                     ) : (
                         <div className="h-40 flex flex-col items-center justify-center text-[var(--color-text-tertiary)] border-2 border-dashed border-[var(--color-border)] rounded-2xl bg-[var(--color-surface-secondary)]/50">
@@ -335,11 +371,21 @@ export default function KanbanBoard({ applicants, onStatusChange }) {
                                 column={col}
                                 applicants={getAppsByStatus(col.id)}
                                 onStatusChange={onStatusChange}
+                                onSchedule={setSchedulingApplicant}
+                                onMessage={handleMessageApplicant}
                             />
                         ))}
                     </div>
                 </div>
             </div>
+
+            {/* Modal rendered at KanbanBoard level — fully escapes all overflow/scroll containers */}
+            <ScheduleInterviewModal
+                isOpen={!!schedulingApplicant}
+                onClose={() => setSchedulingApplicant(null)}
+                applicant={schedulingApplicant}
+                onScheduled={() => setSchedulingApplicant(null)}
+            />
         </div>
     );
 }

@@ -47,7 +47,11 @@ export async function listApplicationsByJobSeeker(jobSeekerId) {
   const applications = await JobApplication.find({ jobSeekerId })
     .populate({
       path: 'jobId',
-      select: 'title company companyLogo',
+      select: 'title company companyLogo recruiter',
+      populate: {
+        path: 'recruiter',
+        select: 'name email companyName companyLogo profilePicture',
+      },
     });
 
   return applications.map(serializeApplication);

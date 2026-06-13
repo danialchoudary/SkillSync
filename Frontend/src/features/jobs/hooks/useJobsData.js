@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getMe } from '../../../services/api';
 import { getMyApplications } from '../../../services/applicationApi';
-import { getJobs, getSavedJobs, saveJob, unsaveJob } from '../../../services/jobApi';
+import { getJobs, getSavedJobs, saveJob, unsaveJob, getRecommendedJobs } from '../../../services/jobApi';
 
 export default function useJobsData() {
   const [jobs, setJobs] = useState([]);
@@ -10,6 +10,7 @@ export default function useJobsData() {
   const [user, setUser] = useState(null);
   const [savedJobs, setSavedJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   const refreshSavedJobs = useCallback(async () => {
     try {
@@ -38,6 +39,15 @@ export default function useJobsData() {
       }
     };
 
+    const loadRecommendedJobs = async () => {
+      try {
+        const recommended = await getRecommendedJobs();
+        if (!cancelled) setRecommendedJobs(Array.isArray(recommended) ? recommended : []);
+      } catch {
+        if (!cancelled) setRecommendedJobs([]);
+      }
+    };
+
     const loadCurrentUser = async () => {
       try {
         const res = await getMe();
@@ -60,6 +70,7 @@ export default function useJobsData() {
     loadCurrentUser();
     refreshSavedJobs();
     loadApplications();
+    loadRecommendedJobs();
 
     return () => {
       cancelled = true;
@@ -101,5 +112,6 @@ export default function useJobsData() {
     isJobSaved,
     handleSave,
     handleUnsave,
+    recommendedJobs,
   };
 }

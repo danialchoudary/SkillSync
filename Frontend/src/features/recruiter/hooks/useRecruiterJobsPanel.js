@@ -80,7 +80,7 @@ export default function useRecruiterJobsPanel(activeSection) {
     let filtered = [...jobs];
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((job) => job.title?.toLowerCase().includes(query));
+      filtered = filtered.filter((job) => String(job.title || '').toLowerCase().includes(query));
     }
 
     filtered.sort((a, b) => {

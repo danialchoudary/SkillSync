@@ -13,6 +13,8 @@ import jobsRouter from './routes/jobs.js';
 import applicationsRouter from './routes/applications.js';
 import messagesRouter from './routes/messages.js';
 import ragRouter from './routes/ragRoutes.js';
+import notificationsRouter from './routes/notifications.js';
+import interviewsRouter from './routes/interviews.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import passport from 'passport';
 import { configurePassport } from './config/passport.js';
@@ -61,6 +63,8 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/jobs', jobsRouter);
 app.use('/applications', applicationsRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/interviews', interviewsRouter);
 app.use('/rag', ragRouter);
 app.get('/', (req, res) => {
   res.send('API is running');

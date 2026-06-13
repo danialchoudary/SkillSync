@@ -12,6 +12,7 @@ import {
   unsaveJobForUser,
   updateJobForRecruiter,
 } from '../services/jobsService.js';
+import { getRecommendationsForUser } from '../services/recommendationService.js';
 
 export async function updateJob(req, res) {
   try {
@@ -110,6 +111,20 @@ export async function listJobs(req, res) {
   } catch (err) {
     console.error('Fetch jobs error:', err);
     return res.status(500).json({ error: 'Failed to fetch jobs. Please try again.' });
+  }
+}
+
+export async function getRecommendedJobs(req, res) {
+  try {
+    if (!req.user || req.user.role !== 'jobseeker') {
+      return res.status(403).json({ error: 'Only job seekers can view recommended jobs.' });
+    }
+    
+    const jobs = await getRecommendationsForUser(req.user._id);
+    return res.json(jobs);
+  } catch (err) {
+    console.error('Fetch recommended jobs error:', err);
+    return res.status(500).json({ error: 'Failed to fetch recommended jobs. Please try again.' });
   }
 }
 

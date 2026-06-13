@@ -36,7 +36,11 @@ export default function Messages() {
     isUserOnline,
     handleRetryLoadUsers,
     getId,
-  } = useMessagesPage({ locationPathname: location.pathname, navigate });
+  } = useMessagesPage({
+    locationPathname: location.pathname,
+    locationSearch: location.search,
+    navigate,
+  });
 
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
 

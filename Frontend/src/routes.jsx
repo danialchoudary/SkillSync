@@ -16,15 +16,15 @@ import Onboarding from './pages/Onboarding';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';
+import { postJob } from './services/jobApi';
 
 const handlePostJob = async (job) => {
   try {
-    // Simulate API call or integrate actual API logic here
-    console.log('Job posted:', job);
-    alert('Job posted successfully!');
+    await postJob(job);
+    console.log('Job posted successfully');
   } catch (error) {
     console.error('Failed to post job:', error);
-    alert('Failed to post job. Please try again.');
+    throw error; // Let JobForm catch it to show the error toast
   }
 };
 

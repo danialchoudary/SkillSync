@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaUser, FaBuilding, FaSignOutAlt } from 'react-icons/fa';
+import { FaUser, FaBuilding, FaSignOutAlt, FaBell } from 'react-icons/fa';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 import { getImageUrl } from '../utils/urlHelper';
+import { getNotifications, markAsRead } from '../services/notificationApi';
+import { onEvent, offEvent } from '../services/socketService';
 
 export default function Topbar({ user = {}, notifications }) {
   const navigate = useNavigate();
@@ -12,6 +14,8 @@ export default function Topbar({ user = {}, notifications }) {
   const dispatch = useDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsList, setNotificationsList] = useState([]);
   const isRecruiter = user?.role === 'recruiter';
   const isAdmin = user?.role === 'admin';
 
@@ -31,6 +35,51 @@ export default function Topbar({ user = {}, notifications }) {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    // Fetch initial notifications
+    const fetchNotifs = async () => {
+      try {
+        const data = await getNotifications();
+        setNotificationsList(data);
+      } catch (error) {
+        console.error('Failed to fetch notifications', error);
+      }
+    };
+    if (user?._id || user?.id) {
+      fetchNotifs();
+    }
+
+    // Socket listener for real-time notifications
+    const handleNewNotification = (notification) => {
+      setNotificationsList((prev) => [notification, ...prev]);
+    };
+
+    onEvent('new_notification', handleNewNotification);
+
+    return () => {
+      offEvent('new_notification', handleNewNotification);
+    };
+  }, [user]);
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      try {
+        await markAsRead(notif._id);
+        setNotificationsList((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+        );
+      } catch (error) {
+        console.error('Failed to mark as read', error);
+      }
+    }
+    setShowNotifications(false);
+    if (notif.link) {
+      navigate(notif.link);
+    }
+  };
+
+  const unreadCount = notificationsList.filter(n => !n.isRead).length;
 
   const handleMobileNavigate = (path) => {
     setMobileMenuOpen(false);
@@ -99,8 +148,99 @@ export default function Topbar({ user = {}, notifications }) {
           </span>
         </div>
 
-        {/* Right: User profile */}
-        <div className="flex items-center gap-3">
+        {/* Right: Notifications + User profile */}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <button
+              type="button"
+              className="relative p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] rounded-full transition-colors"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <FaBell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-[var(--color-surface)]"></span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            <AnimatePresence>
+              {showNotifications && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotifications(false)}
+                  ></div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-lg)] rounded-xl overflow-hidden z-50 origin-top-right"
+                  >
+                    <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-surface-secondary)]/50">
+                      <h3 className="font-semibold text-sm text-[var(--color-text-primary)]">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="text-xs bg-[var(--color-accent)] text-white px-2 py-0.5 rounded-full font-medium">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-h-[360px] overflow-y-auto">
+                      {notificationsList.length === 0 ? (
+                        <div className="px-4 py-8 text-center flex flex-col items-center">
+                          <div className="w-12 h-12 bg-[var(--color-surface-secondary)] rounded-full flex items-center justify-center mb-3">
+                            <FaBell className="text-[var(--color-text-tertiary)] text-lg" />
+                          </div>
+                          <p className="text-sm text-[var(--color-text-secondary)] font-medium">No notifications yet</p>
+                          <p className="text-xs text-[var(--color-text-tertiary)] mt-1">We'll let you know when something arrives</p>
+                        </div>
+                      ) : (
+                        notificationsList.map((notif) => (
+                          <div
+                            key={notif._id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`px-4 py-3 border-b border-[var(--color-border)] last:border-b-0 cursor-pointer transition-colors hover:bg-[var(--color-surface-secondary)] ${
+                              !notif.isRead ? 'bg-[var(--color-accent-bg)]/30' : ''
+                            }`}
+                          >
+                            <div className="flex gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center overflow-hidden flex-shrink-0 ring-1 ring-[var(--color-border)]">
+                                {notif.image ? (
+                                  <img
+                                    src={getImageUrl(notif.image)}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <FaBell className="text-[var(--color-text-tertiary)] text-sm" />
+                                )}
+                              </div>
+                              {!notif.isRead && (
+                                <div className="mt-1.5 w-2 h-2 rounded-full bg-[var(--color-accent)] flex-shrink-0"></div>
+                              )}
+                              <div>
+                                <p className={`text-sm ${!notif.isRead ? 'font-semibold text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+                                  {notif.title}
+                                </p>
+                                <p className="text-xs text-[var(--color-text-tertiary)] mt-1 line-clamp-2 leading-relaxed">
+                                  {notif.message}
+                                </p>
+                                <span className="text-[10px] text-[var(--color-text-tertiary)] mt-2 block font-medium uppercase tracking-wider">
+                                  {new Date(notif.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="w-px h-6 bg-[var(--color-border)] hidden sm:block"></div>
           <button
             className="hidden sm:block text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer bg-transparent border-none"
             onClick={handleProfileClick}

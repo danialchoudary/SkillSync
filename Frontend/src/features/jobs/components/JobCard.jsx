@@ -215,7 +215,7 @@ export default function JobCard({ job, onApply, onEdit, onDelete, saved, onSave,
 
       {isJobSeeker && showModal &&
         createPortal(
-          <ApplyModal
+          <ApplyModal job={job}
             open={showModal}
             onClose={() => setShowModal(false)}
             onSubmit={handleModalSubmit}

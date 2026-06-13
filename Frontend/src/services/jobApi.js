@@ -60,6 +60,16 @@ export const getSavedJobs = async () => {
   }
 };
 
+export const getRecommendedJobs = async () => {
+  try {
+    const res = await api.get('/jobs/recommended', { withCredentials: true });
+    return res.data;
+  } catch (err) {
+    console.error('Get recommended jobs error:', err);
+    throw err;
+  }
+};
+
 export const applyForJob = async (jobId, coverLetter, resumeFile) => {
   try {
     const formData = new FormData();

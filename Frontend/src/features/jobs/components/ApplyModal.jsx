@@ -1,10 +1,30 @@
 import React, { useState } from 'react';
-import { FaBriefcase, FaTimes, FaFileUpload, FaFilePdf, FaCheckCircle, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaBriefcase, FaTimes, FaFileUpload, FaCheckCircle, FaExternalLinkAlt, FaMagic } from 'react-icons/fa';
+import { generateAiCoverLetter } from '../../../services/applicationApi';
 
-export default function ApplyModal({ open, onClose, onSubmit, resumeUrl, onResumeUpload }) {
+export default function ApplyModal({ open, job, onClose, onSubmit, resumeUrl, onResumeUpload }) {
   const [coverLetter, setCoverLetter] = useState('');
   const [resume, setResume] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState('');
+
+  const handleGenerate = async () => {
+    if (!job || (!job._id && !job.id)) return;
+    setIsGenerating(true);
+    setGenError('');
+    try {
+      const result = await generateAiCoverLetter(job._id || job.id);
+      if (result && result.coverLetter) {
+        setCoverLetter(result.coverLetter);
+      }
+    } catch (err) {
+      setGenError('Failed to generate cover letter.');
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -149,9 +169,28 @@ export default function ApplyModal({ open, onClose, onSubmit, resumeUrl, onResum
 
           {/* Cover Letter Section */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-[var(--color-text-primary)] mb-2.5">
-              Cover Letter <span className="text-[var(--color-danger)]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2.5">
+              <label className="block text-sm font-semibold text-[var(--color-text-primary)]">
+                Cover Letter <span className="text-[var(--color-danger)]">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 rounded-lg shadow-sm transition-all disabled:opacity-70"
+              >
+                {isGenerating ? (
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FaMagic />
+                )}
+                {isGenerating ? 'Generating...' : 'Generate with AI'}
+              </button>
+            </div>
+            
+            {genError && (
+              <p className="text-xs text-[var(--color-danger)] mb-2">{genError}</p>
+            )}
 
             <textarea
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/15 focus:border-[var(--color-accent)] transition-colors min-h-[160px] resize-none"

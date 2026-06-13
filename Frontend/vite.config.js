@@ -8,6 +8,19 @@ export default defineConfig({
       '/api':'http://localhost:3000',
     },
   },
+  optimizeDeps: {
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      'axios', 
+      'socket.io-client', 
+      'framer-motion', 
+      'recharts', 
+      'chart.js', 
+      'react-chartjs-2'
+    ],
+  },
   plugins: [react(),
     tailwindcss(),
   ],

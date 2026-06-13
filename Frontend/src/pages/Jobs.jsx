@@ -20,6 +20,7 @@ export default function Jobs() {
     isJobSaved,
     handleSave,
     handleUnsave,
+    recommendedJobs,
   } = useJobsData();
 
   const {
@@ -281,7 +282,7 @@ export default function Jobs() {
                   <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Something went wrong</h3>
                   <p className="text-sm text-[var(--color-danger)] text-center max-w-md">{error}</p>
                 </div>
-              ) : filteredJobs.length === 0 ? (
+              ) : filteredJobs.length === 0 && recommendedJobs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                   <div className="w-16 h-16 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center mb-4">
                     <FaBriefcase className="text-3xl text-[var(--color-text-tertiary)]" />
@@ -304,7 +305,30 @@ export default function Jobs() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 pb-6">
-                  {filteredJobs.map((job) => (
+                  {user?.role === 'jobseeker' && activeFilters.length === 0 && !search && recommendedJobs.map((job) => (
+                    <JobCard
+                      key={`rec-${job.id || job._id}`}
+                      job={{
+                        ...job,
+                        applied: appliedJobIds.has(job._id || job.id),
+                        postedAt: job.createdAt ? new Date(job.createdAt).toLocaleString() : 'Unknown',
+                      }}
+                      onApply={() => { }}
+                      saved={isJobSaved(job._id || job.id)}
+                      onSave={handleSave}
+                      onUnsave={handleUnsave}
+                      user={user}
+                    />
+                  ))}
+                  
+                  {filteredJobs
+                    .filter((job) => {
+                      if (user?.role === 'jobseeker' && activeFilters.length === 0 && !search) {
+                        return !recommendedJobs.some(r => (r._id || r.id) === (job._id || job.id));
+                      }
+                      return true;
+                    })
+                    .map((job) => (
                     <JobCard
                       key={job.id || job._id}
                       job={{

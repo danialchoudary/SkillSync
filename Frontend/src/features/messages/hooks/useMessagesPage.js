@@ -24,7 +24,7 @@ function getCurrentUserId(user) {
   return getId(user?._id || user?.id);
 }
 
-export default function useMessagesPage({ locationPathname, navigate }) {
+export default function useMessagesPage({ locationPathname, locationSearch, navigate }) {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -40,8 +40,13 @@ export default function useMessagesPage({ locationPathname, navigate }) {
   const prevMessagesRef = useRef([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [socketReady, setSocketReady] = useState(false);
+  const autoSelectedUserIdRef = useRef('');
 
   const currentUserId = getCurrentUserId(currentUser);
+  const requestedUserId = useMemo(() => {
+    const params = new URLSearchParams(locationSearch || '');
+    return getId(params.get('userId'));
+  }, [locationSearch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +96,7 @@ export default function useMessagesPage({ locationPathname, navigate }) {
     };
   }, [locationPathname, navigate]);
 
-  const handleUserSelect = async (user) => {
+  const handleUserSelect = useCallback(async (user) => {
     const selectedId = getId(user?._id || user?.id);
     if (!selectedId) return;
 
@@ -122,7 +127,7 @@ export default function useMessagesPage({ locationPathname, navigate }) {
       setMessages([]);
     }
     setLoading(false);
-  };
+  }, [currentUserId, currentUser]);
 
   const handleDeleteConversation = async (userToDelete) => {
     const userId = getId(userToDelete?._id || userToDelete?.id);
@@ -423,6 +428,18 @@ export default function useMessagesPage({ locationPathname, navigate }) {
       cancelled = true;
     };
   }, [users, currentUserId]);
+
+  useEffect(() => {
+    if (!requestedUserId || !currentUserId || !users.length) return;
+    if (requestedUserId === currentUserId) return;
+    if (autoSelectedUserIdRef.current === requestedUserId) return;
+
+    const targetUser = users.find((user) => getId(user._id || user.id) === requestedUserId);
+    if (!targetUser) return;
+
+    autoSelectedUserIdRef.current = requestedUserId;
+    handleUserSelect(targetUser);
+  }, [requestedUserId, users, currentUserId, handleUserSelect]);
 
   const filteredUsers = useMemo(() => {
     const filtered = users.filter((user) => {

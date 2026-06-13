@@ -39,3 +39,13 @@ export const getMyApplications = async () => {
         throw error;
     }
 };
+
+export const generateAiCoverLetter = async (jobId) => {
+    try {
+        const response = await api.post('/applications/generate-cover-letter', { jobId });
+        return response.data;
+    } catch (error) {
+        console.error('Error generating cover letter:', error);
+        throw error;
+    }
+};
