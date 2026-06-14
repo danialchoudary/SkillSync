@@ -2,7 +2,7 @@ const DEFAULT_BACKEND_URL = 'http://localhost:5000';
 const GOOGLE_CALLBACK_PATH = '/auth/google/callback';
 
 function trimTrailingSlash(value) {
-  return String(value || '').replace(/\/+$/, '');
+  return String(value || '').trim().replace(/\/+$/, '');
 }
 
 function joinUrl(origin, path) {
@@ -30,29 +30,35 @@ function getRequestOrigin(req) {
   return `${protocol}://${host}`;
 }
 
-export function getFrontendUrl(path = '') {
-  const frontendUrl = trimTrailingSlash(process.env.FRONTEND_URL || 'http://localhost:5173');
+function getRequestRefererOrigin(req) {
+  if (!req) return '';
+
+  const referer = req.get?.('referer');
+  if (!referer) return '';
+
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return '';
+  }
+}
+
+export function getFrontendUrl(path = '', req) {
+  const frontendUrl = trimTrailingSlash(
+    req?.cookies?.oauth_return_to ||
+      getRequestRefererOrigin(req) ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:5173',
+  );
   return path ? joinUrl(frontendUrl, path) : frontendUrl;
 }
 
 export function getGoogleCallbackUrl(req) {
-  const requestOrigin = getRequestOrigin(req);
-  
-  // Auto-detect Render production environment
-  if (requestOrigin && requestOrigin.includes('.onrender.com')) {
-    return joinUrl(requestOrigin, GOOGLE_CALLBACK_PATH);
-  }
-
   if (process.env.GOOGLE_CALLBACK_URL) {
-    const configuredCallbackUrl = trimTrailingSlash(process.env.GOOGLE_CALLBACK_URL);
-
-    if (requestOrigin && !isLocalhostUrl(requestOrigin) && isLocalhostUrl(configuredCallbackUrl)) {
-      return joinUrl(requestOrigin, GOOGLE_CALLBACK_PATH);
-    }
-
-    return configuredCallbackUrl;
+    return trimTrailingSlash(process.env.GOOGLE_CALLBACK_URL);
   }
 
+  const requestOrigin = getRequestOrigin(req);
   const configuredBackendUrl = process.env.BACKEND_URL || process.env.API_BASE_URL;
   const backendUrl =
     requestOrigin && !isLocalhostUrl(requestOrigin) && (!configuredBackendUrl || isLocalhostUrl(configuredBackendUrl))

@@ -8,10 +8,30 @@ const REQUIRED_VARS = [
   'CLOUDINARY_API_SECRET',
 ];
 
+const PRODUCTION_REQUIRED_VARS = [
+  'BACKEND_URL',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_CALLBACK_URL',
+];
+
 const MIN_SECRET_LENGTH = 16;
 
+function isLocalhostLike(value) {
+  try {
+    const url = new URL(value);
+    return ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function validateEnv() {
-  const missing = REQUIRED_VARS.filter((key) => {
+  const requiredVars = process.env.NODE_ENV === 'production'
+    ? [...REQUIRED_VARS, ...PRODUCTION_REQUIRED_VARS]
+    : REQUIRED_VARS;
+
+  const missing = requiredVars.filter((key) => {
     const val = process.env[key];
     return !val || String(val).trim() === '';
   });
@@ -40,6 +60,30 @@ export function validateEnv() {
     console.warn('[ENV] Security warnings:');
     for (const w of weak) {
       console.warn(`- ${w}`);
+    }
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    const productionErrors = [];
+
+    if (isLocalhostLike(process.env.FRONTEND_URL)) {
+      productionErrors.push('FRONTEND_URL must point to the live frontend URL, not localhost');
+    }
+
+    if (isLocalhostLike(process.env.BACKEND_URL)) {
+      productionErrors.push('BACKEND_URL must point to the live backend URL, not localhost');
+    }
+
+    if (isLocalhostLike(process.env.GOOGLE_CALLBACK_URL)) {
+      productionErrors.push('GOOGLE_CALLBACK_URL must point to the live callback URL, not localhost');
+    }
+
+    if (productionErrors.length > 0) {
+      console.error('[ENV] Production configuration errors:');
+      for (const error of productionErrors) {
+        console.error(`- ${error}`);
+      }
+      process.exit(1);
     }
   }
 }

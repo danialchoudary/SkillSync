@@ -37,6 +37,10 @@ import crypto from 'crypto';
 const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 45000);
 
 async function sendVerificationEmailWithTimeout({ email, subject, message }) {
+  if (process.env.NODE_ENV === 'test') {
+    return { sent: true, skipped: true };
+  }
+
   const emailPromise = sendEmail({ email, subject, message })
     .then(() => ({ sent: true }))
     .catch((error) => ({ sent: false, error }));
@@ -53,11 +57,17 @@ async function sendVerificationEmailWithTimeout({ email, subject, message }) {
   return Promise.race([emailPromise, timeoutPromise]);
 }
 
+async function sendVerificationEmail({ email, subject, message }) {
+  return sendVerificationEmailWithTimeout({ email, subject, message });
+}
+
 export const registerUser = async (req, res) => {
   try {
     console.log('[Auth] Register request body:', req.body);
     let userData;
     let error;
+    const rawEmail = String(req.body.email || '').trim();
+    const normalizedEmail = rawEmail.toLowerCase();
     if (req.body.role === 'recruiter') {
       console.log('[Auth] Validating recruiter data...');
       ({ error } = recruiterSchema.validate(req.body));
@@ -65,18 +75,18 @@ export const registerUser = async (req, res) => {
         console.log('[Auth] Recruiter validation error:', error.details[0].message);
         return res.status(400).json({ error: error.details[0].message });
       }
-      const { recruiterName, email, password, companyName, companyAddress, companyWebsite } = req.body;
+      const { recruiterName, password, companyName, companyAddress, companyWebsite } = req.body;
 
       // Check for existing email
-      const existingUser = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+      const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
-        console.log('[Auth] Email already exists:', email);
+        console.log('[Auth] Email already exists in db:', normalizedEmail, 'db=', existingUser?.constructor?.db?.name || 'unknown');
         return res.status(400).json({ error: 'Email already in use' });
       }
 
       userData = {
         name: recruiterName,
-        email,
+        email: normalizedEmail,
         password,
         role: 'recruiter',
         companyName,
@@ -90,18 +100,18 @@ export const registerUser = async (req, res) => {
         console.log('[Auth] Jobseeker validation error:', error.details[0].message);
         return res.status(400).json({ error: error.details[0].message });
       }
-      const { name, email, password, skills, experience, resumeLink } = req.body;
+      const { name, password, skills, experience, resumeLink } = req.body;
 
       // Check for existing email
-      const existingUser = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+      const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
-        console.log('[Auth] Email already exists:', email);
+        console.log('[Auth] Email already exists in db:', normalizedEmail, 'db=', existingUser?.constructor?.db?.name || 'unknown');
         return res.status(400).json({ error: 'Email already in use' });
       }
 
       userData = {
         name,
-        email,
+        email: normalizedEmail,
         password,
         role: 'jobseeker',
         skills,
@@ -121,27 +131,27 @@ export const registerUser = async (req, res) => {
     await user.save();
     console.log('[Auth] User created successfully:', user._id);
 
-    // Send verification email in the background (don't await)
-    // This prevents frontend timeouts and makes registration feel instant
-    sendVerificationEmailWithTimeout({
+    const emailResult = await sendVerificationEmail({
       email: user.email,
       subject: 'SkillSync Email Verification',
       message: `<h1>Email Verification</h1><p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-    }).then(result => {
-      if (result.sent) {
-        console.log('[Auth] Background verification email sent to:', user.email);
-      } else {
-        console.error('[Auth] Background verification email failed:', result.error?.message);
-      }
-    }).catch(err => {
-      console.error('[Auth] Background verification email fatal error:', err.message);
     });
 
-    // Respond immediately to the user
+    if (emailResult.sent) {
+      console.log('[Auth] Verification email sent to:', user.email);
+    } else {
+      console.error('[Auth] Verification email failed for:', user.email, emailResult.error?.message);
+      await User.deleteOne({ _id: user._id });
+      return res.status(502).json({
+        error: 'We could not send the verification email right now. Please try again in a moment.',
+        details: emailResult.error?.message
+      });
+    }
+
     res.status(201).json({
       message: 'Registration successful. Please check your email for the verification code.',
       email: user.email,
-      emailSent: true // Optimistic success
+      emailSent: emailResult.sent
     });
 
   } catch (err) {
@@ -152,10 +162,11 @@ export const registerUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { code } = req.body;
     console.log('[Auth] Verifying email:', email);
 
-    const user = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
@@ -203,10 +214,10 @@ export const verifyEmail = async (req, res) => {
 
 export const resendVerificationCode = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
     console.log('[Auth] Resending code to:', email);
 
-    const user = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
@@ -221,22 +232,22 @@ export const resendVerificationCode = async (req, res) => {
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    // Send email in the background
-    sendVerificationEmailWithTimeout({
+    const emailResult = await sendVerificationEmail({
       email: user.email,
       subject: 'SkillSync Verification Code (Resend)',
       message: `<h1>Email Verification</h1><p>Your new verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-    }).then(result => {
-      if (result.sent) {
-        console.log('[Auth] Background verification email resent to:', user.email);
-      } else {
-        console.error('[Auth] Background verification email resend failed:', result.error?.message);
-      }
-    }).catch(err => {
-      console.error('[Auth] Background verification email resend fatal error:', err.message);
     });
 
-    res.json({ message: 'Verification code resent successfully' });
+    if (!emailResult.sent) {
+      console.error('[Auth] Verification email resend failed for:', user.email, emailResult.error?.message);
+      return res.status(502).json({
+        error: 'We could not send the verification code right now. Please try again in a moment.',
+        details: emailResult.error?.message
+      });
+    }
+
+    console.log('[Auth] Verification email resent to:', user.email);
+    res.json({ message: 'Verification code resent successfully', emailSent: true });
 
   } catch (err) {
     console.error('[Auth] Resend code error:', err);
@@ -253,20 +264,21 @@ export const loginUser = async (req, res) => {
     }
 
     const { email, password, rememberMe } = req.body;
-    const user = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      console.error('Login failed: user not found for email', email);
+      console.error('Login failed: user not found for email', normalizedEmail);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.error('Login failed: password mismatch for email', email);
+      console.error('Login failed: password mismatch for email', normalizedEmail);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Check if user is verified
     if (user.isVerified === false) {
-      console.error('Login failed: email not verified for', email);
+      console.error('Login failed: email not verified for', normalizedEmail);
       return res.status(401).json({
         error: 'Email not verified. Please check your inbox for the code.',
         needsVerification: true,
@@ -306,7 +318,7 @@ export const googleAuthCallback = (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.redirect(getFrontendUrl('/login?error=auth_failed'));
+      return res.redirect(getFrontendUrl('/login?error=auth_failed', req));
     }
 
     // Issue JWT
@@ -314,19 +326,20 @@ export const googleAuthCallback = (req, res) => {
 
     // Set cookie
     res.cookie('token', token, getAuthCookieOptions(24 * 60 * 60 * 1000)); // 1 day
+    res.clearCookie('oauth_return_to', getAuthCookieOptions());
 
     const tokenFragment = `#token=${encodeURIComponent(token)}`;
 
     // Check if user is fully registered
     if (user.role === 'pending') {
-      return res.redirect(getFrontendUrl(`/onboarding${tokenFragment}`));
+      return res.redirect(getFrontendUrl(`/onboarding${tokenFragment}`, req));
     }
 
     // Fully registered
-    return res.redirect(getFrontendUrl(`/dashboard${tokenFragment}`));
+    return res.redirect(getFrontendUrl(`/dashboard${tokenFragment}`, req));
   } catch (err) {
     console.error('Google Auth Callback Error:', err);
-    return res.redirect(getFrontendUrl('/login?error=server_error'));
+    return res.redirect(getFrontendUrl('/login?error=server_error', req));
   }
 };
 

@@ -56,8 +56,8 @@ function logMongoTroubleshooting(error, uri) {
   }
 }
 
-export async function connectMongo() {
-  const mongoUri = process.env.MONGO_URI?.trim();
+export async function connectMongo({ mongoUri: overrideMongoUri, dbName: overrideDbName } = {}) {
+  const mongoUri = overrideMongoUri?.trim() || process.env.MONGO_URI?.trim();
 
   if (!mongoUri) {
     throw new Error('MONGO_URI is missing. Add it to Backend/.env before starting the server.');
@@ -66,8 +66,17 @@ export async function connectMongo() {
   configureDnsForSrvLookup(mongoUri);
 
   try {
-    const conn = await mongoose.connect(mongoUri, MONGO_CONNECT_OPTIONS);
+    const connectOptions = { ...MONGO_CONNECT_OPTIONS };
+
+    if (overrideDbName?.trim()) {
+      connectOptions.dbName = overrideDbName.trim();
+    }
+
+    const conn = await mongoose.connect(mongoUri, connectOptions);
     console.log(`MongoDB connected: ${conn.connection.host}`);
+    if (conn.connection.name) {
+      console.log(`[MongoDB] Connected database: ${conn.connection.name}`);
+    }
     return conn;
   } catch (error) {
     logMongoTroubleshooting(error, mongoUri);
