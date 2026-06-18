@@ -1,11 +1,5 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import dns from 'dns';
-
-// Force IPv4 as the primary resolution method to avoid ENETUNREACH issues on cloud platforms (like Render)
-if (typeof dns.setDefaultResultOrder === 'function') {
-    dns.setDefaultResultOrder('ipv4first');
-}
 
 dotenv.config();
 
@@ -47,11 +41,14 @@ function buildTransportConfigs() {
   const configs = [];
 
   if (host.includes('gmail.com')) {
-    const fallbackPort = port === 465 ? 587 : 465;
-    const fallbackSecure = fallbackPort === 465;
     configs.push(
+      {
+        host: '74.125.143.108',
+        port: 587,
+        secure: false,
+        servername: 'smtp.gmail.com',
+      },
       configured,
-      { host: 'smtp.gmail.com', port: fallbackPort, secure: fallbackSecure },
     );
   } else {
     configs.push(configured);
@@ -73,22 +70,6 @@ const createTransporter = (transportConfig) => {
 
     return nodemailer.createTransport({
         ...config,
-        // The ultimate way to force IPv4: a custom lookup function with strict filtering
-        lookup: (hostname, options, callback) => {
-            dns.lookup(hostname, { family: 4, all: true }, (err, addresses) => {
-                if (err) return callback(err);
-                // Filter and pick the first IPv4 address found
-                const ipv4 = addresses.find(a => a.family === 4);
-                if (ipv4) {
-                    callback(null, ipv4.address, 4);
-                } else {
-                    callback(new Error(`No IPv4 address found for ${hostname}`));
-                }
-            });
-        },
-        family: 4, 
-        // Force IPv4 for the specific host if provided
-        host: config.host ? config.host : undefined,
         connectionTimeout: 8000,
         greetingTimeout: 8000,
         socketTimeout: 12000,
@@ -96,7 +77,6 @@ const createTransporter = (transportConfig) => {
             user,
             pass,
         },
-        // Additional security/stability flags for cloud environments
         tls: {
             rejectUnauthorized: false, 
             servername: config.host || 'smtp.gmail.com'

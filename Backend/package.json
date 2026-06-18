@@ -9,6 +9,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "reset:db": "node scripts/resetDatabase.js",
+    "delete:user": "node scripts/deleteUserByEmail.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "node --test --test-timeout=60000 --test-force-exit \"tests/unit/**/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 --test-timeout=120000 --test-force-exit \"tests/integration/**/*.test.js\"",
