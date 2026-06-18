@@ -9,8 +9,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
 
 dotenv.config();
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const RETRY_DELAYS_MS = [0, 1500, 4000];
+const RETRY_DELAYS_MS = [0];
 
 function getEmailSettings() {
     const host = process.env.EMAIL_HOST;
@@ -38,26 +37,25 @@ function uniqueConfigs(configs) {
 }
 
 function buildTransportConfigs() {
-    const { host } = getEmailSettings();
-    const port = Number(process.env.EMAIL_PORT || 587);
-    const secure = process.env.EMAIL_SECURE
+  const { host } = getEmailSettings();
+  const port = Number(process.env.EMAIL_PORT || 587);
+  const secure = process.env.EMAIL_SECURE
         ? process.env.EMAIL_SECURE === 'true'
         : port === 465;
 
-    const configured = { host, port, secure };
-    const configs = [];
+  const configured = { host, port, secure };
+  const configs = [];
 
-    if (host.includes('gmail.com')) {
-        configs.push(
-            // Use direct IPv4 address for smtp.gmail.com (74.125.143.108) to bypass DNS issues entirely
-            { host: '74.125.143.108', port: 465, secure: true, servername: 'smtp.gmail.com' }, 
-            { host: 'smtp.gmail.com', port: 465, secure: true },
-            { host: 'smtp.gmail.com', port: 587, secure: false },
-            configured,
-        );
-    } else {
-        configs.push(configured);
-    }
+  if (host.includes('gmail.com')) {
+    const fallbackPort = port === 465 ? 587 : 465;
+    const fallbackSecure = fallbackPort === 465;
+    configs.push(
+      configured,
+      { host: 'smtp.gmail.com', port: fallbackPort, secure: fallbackSecure },
+    );
+  } else {
+    configs.push(configured);
+  }
 
     return uniqueConfigs(configs);
 }
@@ -91,9 +89,9 @@ const createTransporter = (transportConfig) => {
         family: 4, 
         // Force IPv4 for the specific host if provided
         host: config.host ? config.host : undefined,
-        connectionTimeout: 20000, 
-        greetingTimeout: 20000,
-        socketTimeout: 40000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 12000,
         auth: {
             user,
             pass,
@@ -144,12 +142,6 @@ const sendEmail = async (options) => {
     console.log(`[Email] Starting send attempt to ${options.email}`);
     let lastErr = null;
     for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
-        const delay = RETRY_DELAYS_MS[attempt];
-        if (delay > 0) {
-            console.log(`[Email] Retry attempt ${attempt}, waiting ${delay}ms...`);
-            await sleep(delay);
-        }
-
         const configs = buildTransportConfigs();
         for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
