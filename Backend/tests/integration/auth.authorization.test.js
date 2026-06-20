@@ -73,6 +73,7 @@ test('POST /auth/register rejects invalid recruiter payload', async () => {
     body: JSON.stringify({
       recruiterName: 'Alice Recruiter',
       email: 'alice@example.com',
+      phoneNumber: '+15550000001',
       password: 'secret123',
       role: 'recruiter',
       companyName: 'Acme Inc',

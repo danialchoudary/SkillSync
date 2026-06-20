@@ -15,9 +15,9 @@ export const register = createAsyncThunk('auth/register', async (data, { rejectW
   }
 });
 
-export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (data, { rejectWithValue }) => {
+export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (data, { rejectWithValue }) => {
   try {
-    const res = await api.post('/auth/verify-email', data);
+    const res = await api.post('/auth/verify-otp', data);
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
@@ -27,9 +27,9 @@ export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (data, { r
   }
 });
 
-export const resendCode = createAsyncThunk('auth/resendCode', async (email, { rejectWithValue }) => {
+export const resendOtp = createAsyncThunk('auth/resendOtp', async (data, { rejectWithValue }) => {
   try {
-    const res = await api.post('/auth/resend-verification-code', { email });
+    const res = await api.post('/auth/resend-otp', data);
     return res.data;
   } catch (err) {
     return rejectWithValue(err.response?.data || 'Failed to resend code');
@@ -94,12 +94,12 @@ const authSlice = createSlice({
         }
       })
       .addCase(register.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
-      .addCase(verifyEmail.pending, state => { state.loading = true; state.error = null; })
-      .addCase(verifyEmail.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
-      .addCase(verifyEmail.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
-      .addCase(resendCode.pending, state => { state.loading = true; state.error = null; })
-      .addCase(resendCode.fulfilled, state => { state.loading = false; })
-      .addCase(resendCode.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(verifyOtp.pending, state => { state.loading = true; state.error = null; })
+      .addCase(verifyOtp.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(verifyOtp.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(resendOtp.pending, state => { state.loading = true; state.error = null; })
+      .addCase(resendOtp.fulfilled, state => { state.loading = false; })
+      .addCase(resendOtp.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
       .addCase(login.pending, state => { state.loading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
       .addCase(login.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })

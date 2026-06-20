@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { checkEmailHealth, getDatabaseStats } from '../services/healthService.js';
+import { checkSmsHealth, getDatabaseStats } from '../services/healthService.js';
 
-export async function getEmailHealth(req, res) {
+export async function getSmsHealth(req, res) {
   try {
-    await checkEmailHealth();
-    return res.json({ ok: true });
+    const stats = await checkSmsHealth();
+    return res.json({ ok: true, ...stats });
   } catch (err) {
     return res.status(503).json({ ok: false, error: err.message });
   }

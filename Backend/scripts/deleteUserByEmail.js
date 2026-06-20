@@ -12,8 +12,9 @@ async function deleteUserByEmail() {
   }
 
   const targetEmail = String(process.env.TARGET_EMAIL || '').trim().toLowerCase();
-  if (!targetEmail) {
-    console.error('[DeleteUser] TARGET_EMAIL is missing.');
+  const targetPhone = String(process.env.TARGET_PHONE || '').trim();
+  if (!targetEmail && !targetPhone) {
+    console.error('[DeleteUser] TARGET_EMAIL or TARGET_PHONE is missing.');
     process.exit(1);
   }
 
@@ -25,15 +26,27 @@ async function deleteUserByEmail() {
     dbName: targetDbName,
   });
 
-  const existing = await User.findOne({ email: targetEmail });
+  const query = {
+    $or: [],
+  };
+
+  if (targetEmail) {
+    query.$or.push({ email: targetEmail });
+  }
+
+  if (targetPhone) {
+    query.$or.push({ phoneNumber: targetPhone });
+  }
+
+  const existing = await User.findOne(query);
   if (!existing) {
-    console.log(`[DeleteUser] No user found for ${targetEmail}`);
+    console.log(`[DeleteUser] No user found for ${targetEmail || targetPhone}`);
     await mongoose.disconnect();
     return;
   }
 
-  await User.deleteOne({ email: targetEmail });
-  console.log(`[DeleteUser] Deleted user for ${targetEmail} from database ${mongoose.connection.name || '<unknown>'}`);
+  await User.deleteMany(query);
+  console.log(`[DeleteUser] Deleted user for ${targetEmail || targetPhone} from database ${mongoose.connection.name || '<unknown>'}`);
 
   await mongoose.disconnect();
 }

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { register, login } from '../features/auth/authSlice';
 import RoleToggle from './AuthForm/RoleToggle';
 import JobSeekerFields from './AuthForm/JobSeekerFields';
 import RecruiterFields from './AuthForm/RecruiterFields';
+import PhoneField from './AuthForm/PhoneField';
 import EmailField from './AuthForm/EmailField';
 import PasswordField from './AuthForm/PasswordField';
 import ConfirmPasswordField from './AuthForm/ConfirmPasswordField';
 import ErrorMessage from './AuthForm/ErrorMessage';
 import SubmitButton from './AuthForm/SubmitButton';
 import ForgotPasswordLink from './AuthForm/ForgotPasswordLink';
-import { backendOrigin } from '../config/runtime.js';
 
 export default function AuthForm({ type = 'login', onSubmit, loading, error, onErrorClose }) {
   const dispatch = useDispatch();
@@ -27,6 +27,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     companyName: '',
     companyAddress: '',
     companyWebsite: '',
+    phoneNumber: '',
     confirmPassword: '',
     email: '',
     password: '',
@@ -35,8 +36,10 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailValid, setEmailValid] = useState(null);
+  const [phoneValid, setPhoneValid] = useState(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+$/;
+  const phoneRegex = /^\+[1-9]\d{1,14}$/;
 
   const handleEmailChange = e => {
     const value = e.target.value;
@@ -44,9 +47,17 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     setEmailValid(value.length === 0 ? null : emailRegex.test(value));
   };
 
+  const handlePhoneChange = e => {
+    const value = e.target.value;
+    setForm({ ...form, phoneNumber: value });
+    setPhoneValid(value.length === 0 ? null : phoneRegex.test(value.trim()));
+  };
+
   const handleChange = e => {
     if (e.target.name === 'email') {
       handleEmailChange(e);
+    } else if (e.target.name === 'phoneNumber') {
+      handlePhoneChange(e);
     } else {
       setForm({ ...form, [e.target.name]: e.target.value });
     }
@@ -65,6 +76,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       if (role === 'jobseeker') {
         data = {
           name: form.name,
+          phoneNumber: form.phoneNumber,
           email: form.email,
           password: form.password,
           skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
@@ -75,6 +87,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       } else {
         data = {
           recruiterName: form.recruiterName,
+          phoneNumber: form.phoneNumber,
           email: form.email,
           password: form.password,
           confirmPassword: form.confirmPassword,
@@ -87,11 +100,14 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
       const resultAction = await dispatch(register(data));
       if (register.fulfilled.match(resultAction)) {
-        const params = new URLSearchParams({ email: resultAction.payload?.email || form.email });
-        if (resultAction.payload?.emailSent === false) {
-          params.set('emailSent', 'false');
+        const params = new URLSearchParams({
+          phoneNumber: resultAction.payload?.phoneNumber || form.phoneNumber,
+          email: resultAction.payload?.email || form.email,
+        });
+        if (resultAction.payload?.otpSent === false) {
+          params.set('otpSent', 'false');
         }
-        navigate(`/verify-email?${params.toString()}`);
+        navigate(`/verify-otp?${params.toString()}`);
       }
     } else {
       data = {
@@ -102,8 +118,11 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
       const resultAction = await dispatch(login(data));
       if (login.rejected.match(resultAction) && resultAction.payload?.needsVerification) {
-        const params = new URLSearchParams({ email: resultAction.payload?.email || form.email });
-        navigate(`/verify-email?${params.toString()}`);
+        const params = new URLSearchParams({
+          phoneNumber: resultAction.payload?.phoneNumber || form.phoneNumber,
+          email: resultAction.payload?.email || form.email,
+        });
+        navigate(`/verify-otp?${params.toString()}`);
       }
     }
   };
@@ -136,6 +155,9 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         )}
 
         <div className="space-y-4">
+          {type === 'register' && (
+            <PhoneField value={form.phoneNumber} onChange={handleChange} phoneValid={phoneValid} />
+          )}
           <EmailField value={form.email} onChange={handleChange} emailValid={emailValid} />
           <PasswordField value={form.password} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
           {type === 'register' && (
@@ -171,27 +193,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
 
       <SubmitButton loading={loading} type={type} />
 
-      <div className="relative mt-6 mb-4">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[var(--color-border)]"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-[var(--color-surface)] text-[var(--color-text-secondary)] font-bold text-[11px] uppercase tracking-wider">Or continue with</span>
-        </div>
-      </div>
-
-      <a
-        href={`${backendOrigin}/auth/google`}
-        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-all hover:shadow-[var(--shadow-sm)]"
-      >
-        <svg viewBox="0 0 24 24" className="w-5 h-5">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-        </svg>
-        Google
-      </a>
     </form>
   );
 }

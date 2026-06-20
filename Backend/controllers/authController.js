@@ -1,12 +1,13 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
-import { getFrontendUrl } from '../utils/oauthUrls.js';
 import { getAuthCookieOptions } from '../utils/authCookies.js';
+import { sendVerificationSms } from '../utils/smsService.js';
 
 const jobseekerSchema = Joi.object({
   name: Joi.string().min(2).max(50).required(),
   email: Joi.string().email().required(),
+  phoneNumber: Joi.string().trim().pattern(/^\+[1-9]\d{1,14}$/).required(),
   password: Joi.string().min(6).max(128).required(),
   role: Joi.string().valid('jobseeker').required(),
   skills: Joi.array().items(Joi.string()),
@@ -17,6 +18,7 @@ const jobseekerSchema = Joi.object({
 const recruiterSchema = Joi.object({
   recruiterName: Joi.string().min(2).max(50).required(),
   email: Joi.string().email().required(),
+  phoneNumber: Joi.string().trim().pattern(/^\+[1-9]\d{1,14}$/).required(),
   password: Joi.string().min(6).max(128).required(),
   confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
   role: Joi.string().valid('recruiter').required(),
@@ -31,35 +33,7 @@ const loginSchema = Joi.object({
   rememberMe: Joi.boolean().optional()
 });
 
-import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
-
-const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 10000);
-
-async function sendVerificationEmailWithTimeout({ email, subject, message }) {
-  if (process.env.NODE_ENV === 'test') {
-    return { sent: true, skipped: true };
-  }
-
-  const emailPromise = sendEmail({ email, subject, message })
-    .then(() => ({ sent: true }))
-    .catch((error) => ({ sent: false, error }));
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        sent: false,
-        error: new Error(`Verification email timed out after ${EMAIL_SEND_TIMEOUT_MS}ms`),
-      });
-    }, EMAIL_SEND_TIMEOUT_MS);
-  });
-
-  return Promise.race([emailPromise, timeoutPromise]);
-}
-
-async function sendVerificationEmail({ email, subject, message }) {
-  return sendVerificationEmailWithTimeout({ email, subject, message });
-}
 
 export const registerUser = async (req, res) => {
   try {
@@ -68,6 +42,7 @@ export const registerUser = async (req, res) => {
     let error;
     const rawEmail = String(req.body.email || '').trim();
     const normalizedEmail = rawEmail.toLowerCase();
+    const phoneNumber = String(req.body.phoneNumber || '').trim();
     if (req.body.role === 'recruiter') {
       console.log('[Auth] Validating recruiter data...');
       ({ error } = recruiterSchema.validate(req.body));
@@ -77,16 +52,21 @@ export const registerUser = async (req, res) => {
       }
       const { recruiterName, password, companyName, companyAddress, companyWebsite } = req.body;
 
-      // Check for existing email
-      const existingUser = await User.findOne({ email: normalizedEmail });
+      const existingUser = await User.findOne({
+        $or: [
+          { email: normalizedEmail },
+          { phoneNumber },
+        ],
+      });
       if (existingUser) {
-        console.log('[Auth] Email already exists in db:', normalizedEmail, 'db=', existingUser?.constructor?.db?.name || 'unknown');
-        return res.status(400).json({ error: 'Email already in use' });
+        console.log('[Auth] Email or phone already exists in db:', normalizedEmail, phoneNumber, 'db=', existingUser?.constructor?.db?.name || 'unknown');
+        return res.status(400).json({ error: 'Email or phone number already in use' });
       }
 
       userData = {
         name: recruiterName,
         email: normalizedEmail,
+        phoneNumber,
         password,
         role: 'recruiter',
         companyName,
@@ -102,16 +82,22 @@ export const registerUser = async (req, res) => {
       }
       const { name, password, skills, experience, resumeLink } = req.body;
 
-      // Check for existing email
-      const existingUser = await User.findOne({ email: normalizedEmail });
+      // Check for existing email or phone
+      const existingUser = await User.findOne({
+        $or: [
+          { email: normalizedEmail },
+          { phoneNumber },
+        ],
+      });
       if (existingUser) {
-        console.log('[Auth] Email already exists in db:', normalizedEmail, 'db=', existingUser?.constructor?.db?.name || 'unknown');
-        return res.status(400).json({ error: 'Email already in use' });
+        console.log('[Auth] Email or phone already exists in db:', normalizedEmail, phoneNumber, 'db=', existingUser?.constructor?.db?.name || 'unknown');
+        return res.status(400).json({ error: 'Email or phone number already in use' });
       }
 
       userData = {
         name,
         email: normalizedEmail,
+        phoneNumber,
         password,
         role: 'jobseeker',
         skills,
@@ -131,27 +117,32 @@ export const registerUser = async (req, res) => {
     await user.save();
     console.log('[Auth] User created successfully:', user._id);
 
-    const emailResult = await sendVerificationEmail({
-      email: user.email,
-      subject: 'SkillSync Email Verification',
-      message: `<h1>Email Verification</h1><p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-    });
+    try {
+      const smsResult = await sendVerificationSms({
+        phoneNumber: user.phoneNumber,
+        code: verificationCode,
+      });
 
-    if (emailResult.sent) {
-      console.log('[Auth] Verification email sent to:', user.email);
-    } else {
-      console.error('[Auth] Verification email failed for:', user.email, emailResult.error?.message);
+      if (smsResult?.skipped) {
+        console.log('[Auth] Verification SMS skipped in non-production mode for:', user.phoneNumber);
+      } else {
+        console.log('[Auth] Verification SMS sent to:', user.phoneNumber);
+      }
+    } catch (smsError) {
+      const smsErrorMessage = smsError?.message || String(smsError);
+      console.error('[Auth] Verification SMS failed for:', user.phoneNumber, smsErrorMessage);
       await User.deleteOne({ _id: user._id });
       return res.status(502).json({
-        error: 'We could not send the verification email right now. Please try again in a moment.',
-        details: emailResult.error?.message
+        error: 'We could not send the verification code right now. Please try again in a moment.',
+        details: smsErrorMessage,
       });
     }
 
     res.status(201).json({
-      message: 'Registration successful. Please check your email for the verification code.',
+      message: 'Registration successful. Please check your phone for the verification code.',
       email: user.email,
-      emailSent: emailResult.sent
+      phoneNumber: user.phoneNumber,
+      otpSent: true
     });
 
   } catch (err) {
@@ -160,19 +151,27 @@ export const registerUser = async (req, res) => {
   }
 };
 
-export const verifyEmail = async (req, res) => {
+export const verifyOtp = async (req, res) => {
   try {
+    const phoneNumber = String(req.body.phoneNumber || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
     const { code } = req.body;
-    console.log('[Auth] Verifying email:', email);
+    console.log('[Auth] Verifying phone number:', phoneNumber || email);
 
-    const user = await User.findOne({ email });
+    let user = null;
+    if (phoneNumber) {
+      user = await User.findOne({ phoneNumber });
+    }
+    if (!user && email) {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: 'Email already verified' });
+      return res.status(400).json({ error: 'Account already verified' });
     }
 
     if (user.verificationCode !== code) {
@@ -187,7 +186,7 @@ export const verifyEmail = async (req, res) => {
     user.verificationCode = undefined;
     user.verificationCodeExpires = undefined;
     await user.save();
-    console.log('[Auth] Email verified for user:', user._id);
+    console.log('[Auth] Phone verified for user:', user._id);
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -197,7 +196,7 @@ export const verifyEmail = async (req, res) => {
     res.cookie('token', token, getAuthCookieOptions());
 
     res.json({
-      message: 'Email verified successfully',
+      message: 'Phone verified successfully',
       user: {
         name: user.name,
         email: user.email,
@@ -212,18 +211,26 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-export const resendVerificationCode = async (req, res) => {
+export const resendOtp = async (req, res) => {
   try {
+    const phoneNumber = String(req.body.phoneNumber || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
-    console.log('[Auth] Resending code to:', email);
+    console.log('[Auth] Resending code to phone number:', phoneNumber || email);
 
-    const user = await User.findOne({ email });
+    let user = null;
+    if (phoneNumber) {
+      user = await User.findOne({ phoneNumber });
+    }
+    if (!user && email) {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: 'Email already verified' });
+      return res.status(400).json({ error: 'Account already verified' });
     }
 
     // Generate new code
@@ -232,22 +239,27 @@ export const resendVerificationCode = async (req, res) => {
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    const emailResult = await sendVerificationEmail({
-      email: user.email,
-      subject: 'SkillSync Verification Code (Resend)',
-      message: `<h1>Email Verification</h1><p>Your new verification code is: <strong>${verificationCode}</strong></p><p>This code expires in 10 minutes.</p>`
-    });
+    try {
+      const smsResult = await sendVerificationSms({
+        phoneNumber: user.phoneNumber,
+        code: verificationCode,
+      });
 
-    if (!emailResult.sent) {
-      console.error('[Auth] Verification email resend failed for:', user.email, emailResult.error?.message);
+      if (smsResult?.skipped) {
+        console.log('[Auth] Verification SMS resend skipped in non-production mode for:', user.phoneNumber);
+      } else {
+        console.log('[Auth] Verification SMS resent to:', user.phoneNumber);
+      }
+    } catch (smsError) {
+      const smsErrorMessage = smsError?.message || String(smsError);
+      console.error('[Auth] Verification SMS resend failed for:', user.phoneNumber, smsErrorMessage);
       return res.status(502).json({
         error: 'We could not send the verification code right now. Please try again in a moment.',
-        details: emailResult.error?.message
+        details: smsErrorMessage,
       });
     }
 
-    console.log('[Auth] Verification email resent to:', user.email);
-    res.json({ message: 'Verification code resent successfully', emailSent: true });
+    res.json({ message: 'Verification code resent successfully', otpSent: true });
 
   } catch (err) {
     console.error('[Auth] Resend code error:', err);
@@ -278,11 +290,12 @@ export const loginUser = async (req, res) => {
 
     // Check if user is verified
     if (user.isVerified === false) {
-      console.error('Login failed: email not verified for', normalizedEmail);
+      console.error('Login failed: account not verified for', normalizedEmail);
       return res.status(401).json({
-        error: 'Email not verified. Please check your inbox for the code.',
+        error: 'Account not verified. Please check your phone for the code.',
         needsVerification: true,
-        email: user.email
+        email: user.email,
+        phoneNumber: user.phoneNumber
       });
     }
 
@@ -314,61 +327,3 @@ export const getCurrentUser = async (req, res) => {
   res.json(user);
 };
 
-export const googleAuthCallback = (req, res) => {
-  try {
-    const user = req.user;
-    if (!user) {
-      return res.redirect(getFrontendUrl('/login?error=auth_failed', req));
-    }
-
-    // Issue JWT
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-
-    // Set cookie
-    res.cookie('token', token, getAuthCookieOptions(24 * 60 * 60 * 1000)); // 1 day
-    res.clearCookie('oauth_return_to', getAuthCookieOptions());
-
-    const tokenFragment = `#token=${encodeURIComponent(token)}`;
-
-    // Check if user is fully registered
-    if (user.role === 'pending') {
-      return res.redirect(getFrontendUrl(`/onboarding${tokenFragment}`, req));
-    }
-
-    // Fully registered
-    return res.redirect(getFrontendUrl(`/dashboard${tokenFragment}`, req));
-  } catch (err) {
-    console.error('Google Auth Callback Error:', err);
-    return res.redirect(getFrontendUrl('/login?error=server_error', req));
-  }
-};
-
-export const completeOnboarding = async (req, res) => {
-  try {
-    const { role } = req.body; // 'jobseeker' or 'recruiter'
-    if (!['jobseeker', 'recruiter'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (user.role !== 'pending') {
-      return res.status(400).json({ error: 'User has already completed onboarding' });
-    }
-
-    user.role = role;
-    await user.save();
-
-    // Re-issue JWT with the correct role
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('token', token, getAuthCookieOptions(24 * 60 * 60 * 1000));
-
-    res.json({ message: 'Onboarding completed successfully', user: { name: user.name, email: user.email, role: user.role }, token });
-  } catch (err) {
-    console.error('Complete Onboarding Error:', err);
-    res.status(500).json({ error: err.message });
-  }
-};

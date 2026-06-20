@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { clearError, resendCode, verifyEmail } from '../features/auth/authSlice';
+import { ArrowLeft, Smartphone, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { clearError, resendOtp, verifyOtp } from '../features/auth/authSlice';
 
 function getDestinationForRole(role) {
   if (role === 'admin') return '/admin';
@@ -11,20 +11,20 @@ function getDestinationForRole(role) {
   return '/dashboard';
 }
 
-export default function VerifyEmail() {
+export default function VerifyOtp() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { loading, error } = useSelector((state) => state.auth);
-  const initialEmail = searchParams.get('email') || '';
-  const emailSent = searchParams.get('emailSent') !== 'false';
-  const [email, setEmail] = useState(initialEmail);
+  const initialPhoneNumber = searchParams.get('phoneNumber') || searchParams.get('email') || '';
+  const otpSent = searchParams.get('otpSent') !== 'false';
+  const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber);
   const [code, setCode] = useState('');
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState('');
   const [notice] = useState(
-    emailSent
-      ? 'Enter the 6-digit code sent to your email.'
+    otpSent
+      ? 'Enter the 6-digit code sent to your phone.'
       : null
   );
 
@@ -34,9 +34,9 @@ export default function VerifyEmail() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const resultAction = await dispatch(verifyEmail({ email, code }));
+    const resultAction = await dispatch(verifyOtp({ phoneNumber, code }));
 
-    if (verifyEmail.fulfilled.match(resultAction)) {
+    if (verifyOtp.fulfilled.match(resultAction)) {
       navigate(getDestinationForRole(resultAction.payload?.role), { replace: true });
     }
   };
@@ -44,9 +44,9 @@ export default function VerifyEmail() {
   const handleResend = async () => {
     setResendSuccess(false);
     setResendError('');
-    const resultAction = await dispatch(resendCode(email));
+    const resultAction = await dispatch(resendOtp({ phoneNumber }));
 
-    if (resendCode.fulfilled.match(resultAction)) {
+    if (resendOtp.fulfilled.match(resultAction)) {
       setResendSuccess(true);
     } else {
       const payload = resultAction.payload;
@@ -67,21 +67,21 @@ export default function VerifyEmail() {
         <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
           <div className="px-6 pt-8 pb-4 text-center">
             <div className="w-12 h-12 bg-[var(--color-accent-bg)] text-[var(--color-accent)] rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Mail size={24} />
+              <Smartphone size={24} />
             </div>
             <h1 className="text-xl font-semibold text-[var(--color-text-primary)] mb-1">
-              Verify your email
+              Verify your phone
             </h1>
             {notice && (
               <p className="text-sm text-[var(--color-text-secondary)]">{notice}</p>
             )}
           </div>
 
-          {!emailSent && !resendSuccess && (
+          {!otpSent && !resendSuccess && (
             <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                The verification email could not be delivered automatically. Click <strong>Resend Code</strong> below to try again.
+                The verification code could not be delivered automatically. Click <strong>Resend Code</strong> below to try again.
               </p>
             </div>
           )}
@@ -90,7 +90,7 @@ export default function VerifyEmail() {
             <div className="mx-6 mb-2 flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
               <CheckCircle2 size={16} className="text-green-500 mt-0.5 shrink-0" />
               <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                Code sent! Check your inbox (and spam folder) for a new 6-digit code.
+                Code sent! Check your phone for a new 6-digit code.
               </p>
             </div>
           )}
@@ -98,12 +98,12 @@ export default function VerifyEmail() {
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider ml-1">
-                Email
+                Phone Number
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                type="tel"
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
                 className="w-full px-4 py-3 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl focus:ring-4 focus:ring-[var(--color-accent)]/10 focus:border-[var(--color-accent)] outline-none transition-all text-[var(--color-text-primary)]"
                 required
               />
@@ -138,7 +138,7 @@ export default function VerifyEmail() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6 || !email}
+              disabled={loading || code.length !== 6 || !phoneNumber}
               className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold py-3 px-6 rounded-lg transition-all shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -154,9 +154,9 @@ export default function VerifyEmail() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={loading || !email}
+              disabled={loading || !phoneNumber}
               className={`w-full flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                !emailSent && !resendSuccess
+                !otpSent && !resendSuccess
                   ? 'bg-amber-500 hover:bg-amber-600 text-white text-sm shadow-sm'
                   : 'text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]'
               }`}

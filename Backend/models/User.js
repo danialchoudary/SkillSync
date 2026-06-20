@@ -5,8 +5,8 @@ const userSchema = new mongoose.Schema({
   // Common fields
   name: { type: String },
   email: { type: String, required: true, unique: true },
+  phoneNumber: { type: String, unique: true, sparse: true },
   password: { type: String },
-  googleId: { type: String },
   role: { type: String, enum: ['admin', 'recruiter', 'jobseeker', 'pending'], required: true },
   // Jobseeker fields
   skills: [{ type: String }],
@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
    * Company description (for recruiter profile)
    */
   description: { type: String },
-  // Email Verification
+  // Verification
   isVerified: { type: Boolean, default: false },
   verificationCode: { type: String },
   verificationCodeExpires: { type: Date },

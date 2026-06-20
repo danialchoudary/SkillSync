@@ -150,9 +150,9 @@ test('validateEnv exits in production when auth URLs are still local', () => {
       ...baseValidEnv,
       NODE_ENV: 'production',
       BACKEND_URL: 'http://localhost:5000',
-      GOOGLE_CLIENT_ID: 'prod-client-id',
-      GOOGLE_CLIENT_SECRET: 'prod-client-secret',
-      GOOGLE_CALLBACK_URL: 'http://localhost:5000/auth/google/callback',
+      TWILIO_ACCOUNT_SID: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      TWILIO_AUTH_TOKEN: 'twilio-auth-token-value',
+      TWILIO_FROM_NUMBER: '+17373671814',
     },
     () => {
       const originalExit = process.exit;
@@ -176,7 +176,6 @@ test('validateEnv exits in production when auth URLs are still local', () => {
         assert.equal(exitSignal.code, 1);
         assert.equal(logs.some((line) => line.includes('FRONTEND_URL must point to the live frontend URL')), true);
         assert.equal(logs.some((line) => line.includes('BACKEND_URL must point to the live backend URL')), true);
-        assert.equal(logs.some((line) => line.includes('GOOGLE_CALLBACK_URL must point to the live callback URL')), true);
       } finally {
         process.exit = originalExit;
         console.error = originalError;

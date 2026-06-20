@@ -10,9 +10,9 @@ const REQUIRED_VARS = [
 
 const PRODUCTION_REQUIRED_VARS = [
   'BACKEND_URL',
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'GOOGLE_CALLBACK_URL',
+  'TWILIO_ACCOUNT_SID',
+  'TWILIO_AUTH_TOKEN',
+  'TWILIO_FROM_NUMBER',
 ];
 
 const MIN_SECRET_LENGTH = 16;
@@ -73,11 +73,6 @@ export function validateEnv() {
     if (isLocalhostLike(process.env.BACKEND_URL)) {
       productionErrors.push('BACKEND_URL must point to the live backend URL, not localhost');
     }
-
-    if (isLocalhostLike(process.env.GOOGLE_CALLBACK_URL)) {
-      productionErrors.push('GOOGLE_CALLBACK_URL must point to the live callback URL, not localhost');
-    }
-
     if (productionErrors.length > 0) {
       console.error('[ENV] Production configuration errors:');
       for (const error of productionErrors) {

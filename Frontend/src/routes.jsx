@@ -1,7 +1,7 @@
 import Applicants from './pages/Applicants';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import VerifyEmail from './pages/VerifyEmail';
+import VerifyOtp from './pages/VerifyOtp';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import RecruiterPanel from './pages/RecruiterPanel';
@@ -12,7 +12,6 @@ import Jobs from './pages/Jobs';
 import SavedJobs from './pages/SavedJobs';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import JobForm from './features/jobs/components/JobForm';
-import Onboarding from './pages/Onboarding';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';
@@ -56,15 +55,7 @@ const routes = [
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
-  { path: '/verify-email', element: <VerifyEmail /> },
-  {
-    path: '/onboarding',
-    element: (
-      <ProtectedRoute allowedRoles={['pending']}>
-        <Onboarding />
-      </ProtectedRoute>
-    ),
-  },
+  { path: '/verify-otp', element: <VerifyOtp /> },
   {
     path: '/dashboard',
     element: (

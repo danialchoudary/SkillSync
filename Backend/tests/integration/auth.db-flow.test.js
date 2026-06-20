@@ -14,11 +14,20 @@ let server;
 let baseUrl;
 let idCounter = 0;
 const emailEnvKeys = ['EMAIL_HOST', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_PORT', 'EMAIL_SECURE'];
+const smsEnvKeys = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'];
+const smsFallbackKeys = ['SMS_ALLOW_DEV_FALLBACK'];
 const previousEmailEnv = {};
+const previousSmsEnv = {};
+const previousSmsFallbackEnv = {};
 
 function uniqueEmail(prefix = 'user') {
   idCounter += 1;
   return `${prefix}${Date.now()}_${idCounter}@example.com`;
+}
+
+function uniquePhone(prefix = '+1555') {
+  idCounter += 1;
+  return `${prefix}${String(Date.now()).slice(-7)}${String(idCounter).padStart(2, '0')}`;
 }
 
 before(async () => {
@@ -27,6 +36,14 @@ before(async () => {
   for (const key of emailEnvKeys) {
     previousEmailEnv[key] = process.env[key];
     delete process.env[key];
+  }
+  for (const key of smsEnvKeys) {
+    previousSmsEnv[key] = process.env[key];
+    delete process.env[key];
+  }
+  for (const key of smsFallbackKeys) {
+    previousSmsFallbackEnv[key] = process.env[key];
+    process.env[key] = 'true';
   }
   mongod = await startInMemoryMongo();
 
@@ -54,6 +71,20 @@ after(async () => {
       process.env[key] = previousEmailEnv[key];
     }
   }
+  for (const key of smsEnvKeys) {
+    if (typeof previousSmsEnv[key] === 'undefined') {
+      delete process.env[key];
+    } else {
+      process.env[key] = previousSmsEnv[key];
+    }
+  }
+  for (const key of smsFallbackKeys) {
+    if (typeof previousSmsFallbackEnv[key] === 'undefined') {
+      delete process.env[key];
+    } else {
+      process.env[key] = previousSmsFallbackEnv[key];
+    }
+  }
 });
 
 async function request(path, options = {}) {
@@ -72,9 +103,11 @@ async function request(path, options = {}) {
 
 test('register persists unverified user with hashed password and verification code', async () => {
   const email = uniqueEmail('register');
+  const phoneNumber = uniquePhone();
   const payload = {
     name: 'DB Test User',
     email,
+    phoneNumber,
     password: 'secret123',
     role: 'jobseeker',
   };
@@ -87,6 +120,7 @@ test('register persists unverified user with hashed password and verification co
 
   assert.equal(response.status, 201);
   assert.equal(body.email, email);
+  assert.equal(body.phoneNumber, phoneNumber);
   assert.match(body.message, /Registration successful/i);
 
   const user = await User.findOne({ email });
@@ -100,9 +134,11 @@ test('register persists unverified user with hashed password and verification co
 
 test('login blocks unverified user with needsVerification payload', async () => {
   const email = uniqueEmail('pending');
+  const phoneNumber = uniquePhone();
   await User.create({
     name: 'Pending User',
     email,
+    phoneNumber,
     password: 'secret123',
     role: 'jobseeker',
     isVerified: false,
@@ -119,13 +155,16 @@ test('login blocks unverified user with needsVerification payload', async () => 
   assert.equal(response.status, 401);
   assert.equal(body.needsVerification, true);
   assert.equal(body.email, email);
+  assert.equal(body.phoneNumber, phoneNumber);
 });
 
-test('verify-email rejects an invalid code', async () => {
+test('verify-otp rejects an invalid code', async () => {
   const email = uniqueEmail('verifyfail');
+  const phoneNumber = uniquePhone();
   await User.create({
     name: 'Verify Fail',
     email,
+    phoneNumber,
     password: 'secret123',
     role: 'jobseeker',
     isVerified: false,
@@ -133,21 +172,23 @@ test('verify-email rejects an invalid code', async () => {
     verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
 
-  const { response, body } = await request('/auth/verify-email', {
+  const { response, body } = await request('/auth/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code: '000000' }),
+    body: JSON.stringify({ phoneNumber, code: '000000' }),
   });
 
   assert.equal(response.status, 400);
   assert.equal(body.error, 'Invalid verification code');
 });
 
-test('verify-email success marks user verified and clears code', async () => {
+test('verify-otp success marks user verified and clears code', async () => {
   const email = uniqueEmail('verifysuccess');
+  const phoneNumber = uniquePhone();
   await User.create({
     name: 'Verify Success',
     email,
+    phoneNumber,
     password: 'secret123',
     role: 'jobseeker',
     isVerified: false,
@@ -155,10 +196,10 @@ test('verify-email success marks user verified and clears code', async () => {
     verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
 
-  const { response, body } = await request('/auth/verify-email', {
+  const { response, body } = await request('/auth/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code: '222333' }),
+    body: JSON.stringify({ phoneNumber, code: '222333' }),
   });
 
   assert.equal(response.status, 200);
@@ -174,6 +215,7 @@ test('verify-email success marks user verified and clears code', async () => {
 
 test('full auth flow register -> verify -> login -> auth/me', async () => {
   const email = uniqueEmail('flow');
+  const phoneNumber = uniquePhone();
   const password = 'secret123';
 
   const registerRes = await request('/auth/register', {
@@ -182,6 +224,7 @@ test('full auth flow register -> verify -> login -> auth/me', async () => {
     body: JSON.stringify({
       name: 'Flow User',
       email,
+      phoneNumber,
       password,
       role: 'jobseeker',
     }),
@@ -191,11 +234,11 @@ test('full auth flow register -> verify -> login -> auth/me', async () => {
   const pendingUser = await User.findOne({ email });
   assert.ok(pendingUser?.verificationCode);
 
-  const verifyRes = await request('/auth/verify-email', {
+  const verifyRes = await request('/auth/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email,
+      phoneNumber,
       code: pendingUser.verificationCode,
     }),
   });

@@ -75,9 +75,8 @@ Applicants / Kanban Board
 - MongoDB
 - Mongoose
 - Socket.IO
-- Passport.js
 - Cloudinary
-- Nodemailer
+- Twilio SMS OTP
 - Gemini AI integration
 
 ### Frontend

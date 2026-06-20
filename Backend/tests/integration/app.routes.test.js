@@ -89,19 +89,20 @@ test('GET /api/hello returns 401 when bearer token is invalid', async () => {
   assert.equal(body.error, 'Invalid token');
 });
 
-test('GET /health/email returns 503 when email transport is not configured', async () => {
+test('GET /health/sms returns 503 when SMS transport is not configured', async () => {
   await withEnv(
     {
-      EMAIL_HOST: undefined,
-      EMAIL_USER: undefined,
-      EMAIL_PASS: undefined,
+      TWILIO_ACCOUNT_SID: undefined,
+      TWILIO_AUTH_TOKEN: undefined,
+      TWILIO_FROM_NUMBER: undefined,
+      NODE_ENV: 'production',
     },
     async () => {
-      const { response, body } = await request('/health/email');
+      const { response, body } = await request('/health/sms');
 
       assert.equal(response.status, 503);
       assert.equal(body.ok, false);
-      assert.match(body.error, /EMAIL_HOST|EMAIL_USER\/EMAIL_PASS/);
+      assert.match(body.error, /TWILIO_ACCOUNT_SID|TWILIO_AUTH_TOKEN|TWILIO_FROM_NUMBER/);
     },
   );
 });

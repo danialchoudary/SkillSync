@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { fetchCurrentUser } from './features/auth/authSlice';
 import { Provider } from 'react-redux';
@@ -11,14 +11,6 @@ import useGlobalUnread from './features/messages/useGlobalUnread';
 function AppRoutes() {
   const dispatch = useDispatch();
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const oauthToken = hashParams.get('token');
-
-    if (oauthToken) {
-      localStorage.setItem('token', oauthToken);
-      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-    }
-
     dispatch(fetchCurrentUser());
   }, [dispatch]);
   useGlobalUnread();

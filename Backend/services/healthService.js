@@ -1,8 +1,18 @@
-import { verifyEmailTransport } from '../utils/sendEmail.js';
 import mongoose from 'mongoose';
 
-export async function checkEmailHealth() {
-  await verifyEmailTransport();
+export async function checkSmsHealth() {
+  const accountSid = String(process.env.TWILIO_ACCOUNT_SID || '').trim();
+  const authToken = String(process.env.TWILIO_AUTH_TOKEN || '').trim();
+  const fromNumber = String(process.env.TWILIO_FROM_NUMBER || '').trim();
+
+  if (!accountSid || !authToken || !fromNumber) {
+    throw new Error('TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must be configured');
+  }
+
+  return {
+    provider: 'twilio',
+    configured: true,
+  };
 }
 
 export async function getDatabaseStats() {
