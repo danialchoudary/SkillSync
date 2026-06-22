@@ -1,9 +1,7 @@
 import Applicants from './pages/Applicants';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import LoginOtp from './pages/LoginOtp';
-import RegisterOtp from './pages/RegisterOtp';
-import VerifyOtp from './pages/VerifyOtp';
+
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import RecruiterPanel from './pages/RecruiterPanel';
@@ -56,10 +54,7 @@ const routes = [
   },
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
-  { path: '/login-otp', element: <LoginOtp /> },
   { path: '/register', element: <Register /> },
-  { path: '/register-otp', element: <RegisterOtp /> },
-  { path: '/verify-otp', element: <VerifyOtp /> },
   {
     path: '/dashboard',
     element: (

@@ -5,7 +5,6 @@ const userSchema = new mongoose.Schema({
   // Common fields
   name: { type: String },
   email: { type: String, required: true, unique: true },
-  phoneNumber: { type: String, unique: true, sparse: true },
   password: { type: String },
   role: { type: String, enum: ['admin', 'recruiter', 'jobseeker', 'pending'], required: true },
   // Jobseeker fields
@@ -34,21 +33,7 @@ const userSchema = new mongoose.Schema({
    * Company description (for recruiter profile)
    */
   description: { type: String },
-  // Verification
-  isVerified: { type: Boolean, default: false },
-  verificationCode: { type: String },
-  verificationCodeExpires: { type: Date },
-  passkeyEnabled: { type: Boolean, default: false },
-  passkeyRegistrationChallenge: { type: String },
-  passkeyAuthenticationChallenge: { type: String },
-  passkeys: [{
-    credentialID: { type: String },
-    publicKey: { type: Buffer },
-    counter: { type: Number, default: 0 },
-    transports: [{ type: String }],
-    backedUp: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-  }],
+
 });
 
 userSchema.pre('save', async function (next) {

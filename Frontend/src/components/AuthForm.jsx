@@ -5,7 +5,6 @@ import { register, login } from '../features/auth/authSlice';
 import RoleToggle from './AuthForm/RoleToggle';
 import JobSeekerFields from './AuthForm/JobSeekerFields';
 import RecruiterFields from './AuthForm/RecruiterFields';
-import PhoneField from './AuthForm/PhoneField';
 import EmailField from './AuthForm/EmailField';
 import PasswordField from './AuthForm/PasswordField';
 import ConfirmPasswordField from './AuthForm/ConfirmPasswordField';
@@ -27,7 +26,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     companyName: '',
     companyAddress: '',
     companyWebsite: '',
-    phoneNumber: '',
     confirmPassword: '',
     email: '',
     password: '',
@@ -36,10 +34,8 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailValid, setEmailValid] = useState(null);
-  const [phoneValid, setPhoneValid] = useState(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+$/;
-  const phoneRegex = /^\+[1-9]\d{1,14}$/;
 
   const handleEmailChange = e => {
     const value = e.target.value;
@@ -47,17 +43,9 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
     setEmailValid(value.length === 0 ? null : emailRegex.test(value));
   };
 
-  const handlePhoneChange = e => {
-    const value = e.target.value;
-    setForm({ ...form, phoneNumber: value });
-    setPhoneValid(value.length === 0 ? null : phoneRegex.test(value.trim()));
-  };
-
   const handleChange = e => {
     if (e.target.name === 'email') {
       handleEmailChange(e);
-    } else if (e.target.name === 'phoneNumber') {
-      handlePhoneChange(e);
     } else {
       setForm({ ...form, [e.target.name]: e.target.value });
     }
@@ -76,7 +64,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       if (role === 'jobseeker') {
         data = {
           name: form.name,
-          phoneNumber: form.phoneNumber,
           email: form.email,
           password: form.password,
           skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
@@ -87,7 +74,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       } else {
         data = {
           recruiterName: form.recruiterName,
-          phoneNumber: form.phoneNumber,
           email: form.email,
           password: form.password,
           confirmPassword: form.confirmPassword,
@@ -98,17 +84,8 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         };
       }
 
-      const resultAction = await dispatch(register(data));
-      if (register.fulfilled.match(resultAction)) {
-        const params = new URLSearchParams({
-          phoneNumber: resultAction.payload?.phoneNumber || form.phoneNumber,
-          email: resultAction.payload?.email || form.email,
-        });
-        if (resultAction.payload?.otpSent === false) {
-          params.set('otpSent', 'false');
-        }
-        navigate(`/verify-otp?${params.toString()}`);
-      }
+      await dispatch(register(data));
+      // Upon successful registration, authSlice updates user state and Register.jsx will handle navigation
     } else {
       data = {
         email: form.email,
@@ -116,25 +93,17 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         rememberMe: form.rememberMe,
       };
 
-      const resultAction = await dispatch(login(data));
-      if (login.rejected.match(resultAction) && resultAction.payload?.needsVerification) {
-        const params = new URLSearchParams({
-          phoneNumber: resultAction.payload?.phoneNumber || form.phoneNumber,
-          email: resultAction.payload?.email || form.email,
-        });
-        navigate(`/verify-otp?${params.toString()}`);
-      }
+      await dispatch(login(data));
+      // Same logic, Login.jsx handles navigation on successful user state update
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full animate-in fade-in duration-500">
-      {/* Role Toggle for Register */}
       {type === 'register' && (
         <RoleToggle role={role} setRole={setRole} />
       )}
 
-      {/* Dynamic Fields for Register */}
       {type === 'register' && (
         <div className="space-y-4 py-2 border-y border-[var(--color-border)]/50">
           {role === 'jobseeker' ? (
@@ -145,7 +114,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         </div>
       )}
 
-      {/* Credentials Section */}
       <div className="space-y-4">
         {type === 'login' && (
           <div className="flex items-center gap-2 mb-4">
@@ -155,9 +123,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         )}
 
         <div className="space-y-4">
-          {type === 'register' && (
-            <PhoneField value={form.phoneNumber} onChange={handleChange} phoneValid={phoneValid} />
-          )}
           <EmailField value={form.email} onChange={handleChange} emailValid={emailValid} />
           <PasswordField value={form.password} onChange={handleChange} showPassword={showPassword} setShowPassword={setShowPassword} />
           {type === 'register' && (
@@ -166,7 +131,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         </div>
       </div>
 
-      {/* Logic for errors and keep signed in */}
       <div className="space-y-4">
         <div className="space-y-1">
           <ErrorMessage error={passwordError} />
@@ -192,7 +156,6 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
       </div>
 
       <SubmitButton loading={loading} type={type} />
-
     </form>
   );
 }
