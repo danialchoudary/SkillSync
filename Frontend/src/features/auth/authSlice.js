@@ -15,7 +15,49 @@ export const register = createAsyncThunk('auth/register', async (data, { rejectW
   }
 });
 
-export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (data, { rejectWithValue }) => {
+export const startPasskeyRegistration = createAsyncThunk('auth/startPasskeyRegistration', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/passkey/register/options', data);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data || 'Failed to start passkey registration');
+  }
+});
+
+export const completePasskeyRegistration = createAsyncThunk('auth/completePasskeyRegistration', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/passkey/register/verify', data);
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+    }
+    return res.data.user;
+  } catch (err) {
+    return rejectWithValue(err.response?.data || 'Failed to complete passkey registration');
+  }
+});
+
+export const startPasskeyLogin = createAsyncThunk('auth/startPasskeyLogin', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/passkey/login/options', data);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data || 'Failed to start passkey login');
+  }
+});
+
+export const completePasskeyLogin = createAsyncThunk('auth/completePasskeyLogin', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/passkey/login/verify', data);
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+    }
+    return res.data.user;
+  } catch (err) {
+    return rejectWithValue(err.response?.data || 'Failed to complete passkey login');
+  }
+});
+
+export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/verify-otp', data);
     if (res.data.token) {
@@ -26,6 +68,8 @@ export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (data, { rejec
     return rejectWithValue(err.response?.data || 'Verification failed');
   }
 });
+
+export const verifyOtp = verifyEmail;
 
 export const resendOtp = createAsyncThunk('auth/resendOtp', async (data, { rejectWithValue }) => {
   try {
@@ -94,6 +138,18 @@ const authSlice = createSlice({
         }
       })
       .addCase(register.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(startPasskeyRegistration.pending, state => { state.loading = true; state.error = null; })
+      .addCase(startPasskeyRegistration.fulfilled, state => { state.loading = false; })
+      .addCase(startPasskeyRegistration.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(completePasskeyRegistration.pending, state => { state.loading = true; state.error = null; })
+      .addCase(completePasskeyRegistration.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(completePasskeyRegistration.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(startPasskeyLogin.pending, state => { state.loading = true; state.error = null; })
+      .addCase(startPasskeyLogin.fulfilled, state => { state.loading = false; })
+      .addCase(startPasskeyLogin.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
+      .addCase(completePasskeyLogin.pending, state => { state.loading = true; state.error = null; })
+      .addCase(completePasskeyLogin.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(completePasskeyLogin.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })
       .addCase(verifyOtp.pending, state => { state.loading = true; state.error = null; })
       .addCase(verifyOtp.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
       .addCase(verifyOtp.rejected, (state, action) => { state.loading = false; state.error = action.payload?.error || action.payload; })

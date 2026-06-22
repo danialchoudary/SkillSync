@@ -25,6 +25,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@react-google-maps/api": "^2.20.7",
     "@reduxjs/toolkit": "^2.8.2",
+    "@simplewebauthn/browser": "^13.3.0",
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
     "chart.js": "^4.5.1",

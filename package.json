@@ -11,11 +11,5 @@
     "coverage:backend": "npm --prefix Backend run coverage",
     "coverage:frontend": "npm --prefix Frontend run coverage",
     "install:all": "npm --prefix Backend install && npm --prefix Frontend install"
-  },
-  "dependencies": {
-    "express-session": "^1.18.2",
-    "mongodb": "^7.1.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
   }
 }

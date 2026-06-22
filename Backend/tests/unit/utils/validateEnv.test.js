@@ -153,6 +153,8 @@ test('validateEnv exits in production when auth URLs are still local', () => {
       TWILIO_ACCOUNT_SID: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       TWILIO_AUTH_TOKEN: 'twilio-auth-token-value',
       TWILIO_FROM_NUMBER: '+17373671814',
+      WEB_AUTHN_ORIGIN: 'http://localhost:5173',
+      WEB_AUTHN_RP_ID: 'localhost',
     },
     () => {
       const originalExit = process.exit;

@@ -1,6 +1,9 @@
 import React from 'react';
 
 export default function SubmitButton({ loading, type }) {
+  const isLogin = type === 'login' || type === 'passkey-login';
+  const label = isLogin ? 'Sign in' : 'Create account';
+  const loadingLabel = isLogin ? 'Signing in...' : 'Processing...';
   return (
     <button
       type="submit"
@@ -10,10 +13,10 @@ export default function SubmitButton({ loading, type }) {
       {loading ? (
         <>
           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          <span>{type === 'login' ? 'Signing in...' : 'Processing...'}</span>
+          <span>{loadingLabel}</span>
         </>
       ) : (
-        <span>{type === 'login' ? 'Sign in' : 'Create account'}</span>
+        <span>{label}</span>
       )}
     </button>
   );

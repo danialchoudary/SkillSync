@@ -38,6 +38,17 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   verificationCode: { type: String },
   verificationCodeExpires: { type: Date },
+  passkeyEnabled: { type: Boolean, default: false },
+  passkeyRegistrationChallenge: { type: String },
+  passkeyAuthenticationChallenge: { type: String },
+  passkeys: [{
+    credentialID: { type: String },
+    publicKey: { type: Buffer },
+    counter: { type: Number, default: 0 },
+    transports: [{ type: String }],
+    backedUp: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+  }],
 });
 
 userSchema.pre('save', async function (next) {

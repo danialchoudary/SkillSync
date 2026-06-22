@@ -13,6 +13,8 @@ const PRODUCTION_REQUIRED_VARS = [
   'TWILIO_ACCOUNT_SID',
   'TWILIO_AUTH_TOKEN',
   'TWILIO_FROM_NUMBER',
+  'WEB_AUTHN_ORIGIN',
+  'WEB_AUTHN_RP_ID',
 ];
 
 const MIN_SECRET_LENGTH = 16;
@@ -73,6 +75,11 @@ export function validateEnv() {
     if (isLocalhostLike(process.env.BACKEND_URL)) {
       productionErrors.push('BACKEND_URL must point to the live backend URL, not localhost');
     }
+
+    if (isLocalhostLike(process.env.WEB_AUTHN_ORIGIN)) {
+      productionErrors.push('WEB_AUTHN_ORIGIN must point to the live frontend origin, not localhost');
+    }
+
     if (productionErrors.length > 0) {
       console.error('[ENV] Production configuration errors:');
       for (const error of productionErrors) {
