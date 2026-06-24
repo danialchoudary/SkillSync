@@ -2,6 +2,7 @@ import React from 'react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import { getImageUrl } from '../utils/urlHelper';
+import MessageSkeleton from './skeletons/MessageSkeleton';
 
 export default function ChatWindow({
   selectedUser,
@@ -55,9 +56,12 @@ export default function ChatWindow({
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {loading ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <div className="w-8 h-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-sm text-[var(--color-text-tertiary)]">Loading messages...</p>
+              <div className="space-y-4 pt-4 h-full overflow-hidden flex flex-col justify-end pb-4">
+                 <MessageSkeleton isOwn={false} />
+                 <MessageSkeleton isOwn={true} />
+                 <MessageSkeleton isOwn={false} />
+                 <MessageSkeleton isOwn={false} />
+                 <MessageSkeleton isOwn={true} />
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full">

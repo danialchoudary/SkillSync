@@ -6,6 +6,7 @@ import {
   EXPERIENCE_LEVELS,
   formatSalaryValue,
 } from '../utils/jobFilters';
+import Skeleton from '../components/skeletons/Skeleton';
 
 export default function Applicants({ setToast = () => { }, setToastType = () => { } }) {
   const {
@@ -269,11 +270,17 @@ export default function Applicants({ setToast = () => { }, setToastType = () => 
           </div>
 
           {loading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-[var(--color-text-secondary)]">Loading applicants...</p>
-              </div>
+            <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex gap-4">
+               {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex flex-col w-72 sm:w-80 shrink-0 bg-[var(--color-surface-secondary)]/50 rounded-xl p-3 border border-[var(--color-border)] h-full overflow-hidden">
+                     <Skeleton className="h-6 w-32 mb-4" />
+                     <div className="space-y-3">
+                        <Skeleton className="h-28 w-full rounded-lg" />
+                        <Skeleton className="h-28 w-full rounded-lg" />
+                        <Skeleton className="h-28 w-full rounded-lg" />
+                     </div>
+                  </div>
+               ))}
             </div>
           ) : (
             <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden">

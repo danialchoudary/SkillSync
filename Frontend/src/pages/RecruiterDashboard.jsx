@@ -4,6 +4,7 @@ import { Briefcase, Users, TrendingUp, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardStats, getRecentApplicants } from '../services/dashboardApi';
 import { getImageUrl } from '../utils/urlHelper';
+import Skeleton from '../components/skeletons/Skeleton';
 
 const RecruiterDashboard = () => {
   const navigate = useNavigate();
@@ -36,10 +37,21 @@ const RecruiterDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+      <div className="w-full bg-[var(--color-bg)] p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col gap-3">
+             <Skeleton className="h-8 w-48" />
+             <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             <Skeleton className="h-32 w-full rounded-xl" />
+             <Skeleton className="h-32 w-full rounded-xl" />
+             <Skeleton className="h-32 w-full rounded-xl" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+             <Skeleton className="lg:col-span-2 h-[300px] w-full rounded-xl" />
+             <Skeleton className="h-[300px] w-full rounded-xl" />
+          </div>
         </div>
       </div>
     );

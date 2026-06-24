@@ -12,6 +12,7 @@ import Footer from '../components/Footer';
 import useJobseekerDashboardData from '../features/dashboard/hooks/useJobseekerDashboardData';
 import { getImageUrl } from '../utils/urlHelper';
 import { APPLICATION_STATUS_LABELS } from '../utils/applicationStatus';
+import ProfileSkeleton from '../components/skeletons/ProfileSkeleton';
 
 const STATUS_BADGES = {
   applied: 'bg-[var(--color-accent-bg)] text-[var(--color-accent)]',
@@ -39,10 +40,15 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
-        <div className="text-center">
-          <div className="w-8 h-8 mx-auto mb-3 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+        <Topbar user={{}} />
+        <div className="relative flex-1 flex">
+          <div className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 z-20 bg-[var(--color-surface)] border-r border-[var(--color-border)]">
+             <Sidebar activeSection="dashboard" onSectionChange={() => {}} />
+          </div>
+          <main className="flex-1 lg:ml-64 w-full max-w-7xl mx-auto pt-20 px-4 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+             <ProfileSkeleton />
+          </main>
         </div>
       </div>
     );

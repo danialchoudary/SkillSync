@@ -13,6 +13,7 @@ import {
   getApplicationStatusLabel,
   normalizeApplicationStatus,
 } from '../utils/applicationStatus';
+import JobCardSkeleton from '../components/skeletons/JobCardSkeleton';
 
 export default function MyApplications() {
   const navigate = useNavigate();
@@ -172,9 +173,10 @@ export default function MyApplications() {
 
           {/* Content */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-              <div className="w-8 h-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-sm text-[var(--color-text-secondary)]">Loading applications...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <JobCardSkeleton key={index} />
+              ))}
             </div>
           ) : filteredApplications.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[400px]">

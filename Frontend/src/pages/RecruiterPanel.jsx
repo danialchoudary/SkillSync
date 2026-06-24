@@ -13,6 +13,7 @@ import Toast from '../components/Toast';
 import EditJobModal from '../components/EditJobModal';
 import RecruiterDashboard from './RecruiterDashboard';
 import { Briefcase, Search, Calendar, Filter, Plus, ChevronDown } from 'lucide-react';
+import JobCardSkeleton from '../components/skeletons/JobCardSkeleton';
 
 function RecruiterPanel() {
   const unreadCount = useSelector(state => state.unread.count);
