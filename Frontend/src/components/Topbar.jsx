@@ -125,6 +125,7 @@ export default function Topbar({ user = {}, notifications }) {
         { label: 'Saved Jobs', path: '/saved-jobs' },
         { label: 'My Applications', path: '/my-applications' },
         { label: 'Messages', path: '/messages' },
+        { label: 'AI Agent', path: '/agent' },
         { label: 'Profile', path: '/profile' },
       ];
 
