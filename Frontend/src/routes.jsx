@@ -15,6 +15,7 @@ import JobForm from './features/jobs/components/JobForm';
 
 import MyApplications from './pages/MyApplications';
 import Messages from './pages/Messages';
+import AgentControlCenter from './pages/AgentControlCenter';
 import { postJob } from './services/jobApi';
 
 const handlePostJob = async (job) => {
@@ -116,6 +117,14 @@ const routes = [
     element: (
       <ProtectedRoute allowedRoles={['jobseeker', 'admin', 'recruiter']}>
         <MyApplications />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/agent',
+    element: (
+      <ProtectedRoute allowedRoles={['jobseeker']}>
+        <AgentControlCenter />
       </ProtectedRoute>
     ),
   },

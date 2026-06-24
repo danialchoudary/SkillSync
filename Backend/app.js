@@ -15,6 +15,7 @@ import messagesRouter from './routes/messages.js';
 import ragRouter from './routes/ragRoutes.js';
 import notificationsRouter from './routes/notifications.js';
 import interviewsRouter from './routes/interviews.js';
+import agentRouter from './routes/agent.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const backendRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -60,6 +61,7 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/rag', ragRouter);
+app.use('/agent', agentRouter);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

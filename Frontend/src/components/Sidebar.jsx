@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTachometerAlt, FaUser, FaBriefcase, FaBookmark, FaEnvelope, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaUser, FaBriefcase, FaBookmark, FaEnvelope, FaCog, FaSignOutAlt, FaRobot } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'My Applications', icon: <FaBriefcase />, section: 'applications' },
   { label: 'Saved Jobs', icon: <FaBookmark />, section: 'saved' },
   { label: 'Messages', icon: <FaEnvelope />, section: 'messages' },
+  { label: 'AI Agent', icon: <FaRobot />, section: 'agent', badge: 'NEW' },
   { label: 'Settings', icon: <FaCog />, section: 'settings' },
   { label: 'Logout', icon: <FaSignOutAlt />, section: 'logout' },
 ];
@@ -71,6 +72,8 @@ export default function Sidebar({ activeSection, onSectionChange, unreadCount })
                   navigate('/applicants');
                 } else if (item.section === 'messages') {
                   navigate('/messages');
+                } else if (item.section === 'agent') {
+                  navigate('/agent');
                 } else {
                   onSectionChange(item.section);
                 }
@@ -93,6 +96,13 @@ export default function Sidebar({ activeSection, onSectionChange, unreadCount })
               {item.section === 'messages' && unreadCount > 0 && (
                 <span className="ml-auto bg-[var(--color-danger)] text-white text-[10px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+
+              {/* NEW badge for AI Agent */}
+              {item.badge && (
+                <span className="ml-auto bg-[var(--color-accent)] text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 tracking-wider">
+                  {item.badge}
                 </span>
               )}
             </button>
