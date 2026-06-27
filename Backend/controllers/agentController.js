@@ -32,6 +32,7 @@ export async function getAgentStatus(req, res) {
       mode: prefs.mode,
       dailyLimit: prefs.dailyLimit,
       preferences: {
+        mode: prefs.mode,
         remoteOnly: prefs.remoteOnly,
         minSalary: prefs.minSalary,
         jobTitles: prefs.jobTitles,

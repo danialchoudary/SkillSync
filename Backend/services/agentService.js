@@ -5,6 +5,7 @@ import JobApplication from '../models/JobApplication.js';
 import AgentPreferences from '../models/AgentPreferences.js';
 import AgentDraft from '../models/AgentDraft.js';
 import { generateCoverLetter } from './aiService.js';
+import { createNotification } from './notificationService.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -70,6 +71,21 @@ function buildJobText(job) {
     `Salary: ${job.salary}`,
   ];
   return parts.join('\n');
+}
+
+function matchesTargetJobTitles(job, jobTitles = []) {
+  if (!Array.isArray(jobTitles) || jobTitles.length === 0) {
+    return true;
+  }
+
+  const jobTitle = (job.title || '').toLowerCase();
+  const jobDescription = (job.description || '').toLowerCase();
+
+  return jobTitles.some((title) => {
+    const normalizedTitle = String(title || '').trim().toLowerCase();
+    if (!normalizedTitle) return false;
+    return jobTitle.includes(normalizedTitle) || jobDescription.includes(normalizedTitle);
+  });
 }
 
 /**
@@ -150,6 +166,7 @@ export async function findMatchingJobs(userId, prefs) {
     if (appliedIds.has(job._id.toString())) return false;
     if (draftedIds.has(job._id.toString())) return false;
     if (cooledCompanies.has(job.company?.toLowerCase())) return false;
+    if (!matchesTargetJobTitles(job, prefs.jobTitles)) return false;
     // Remote filter
     if (prefs.remoteOnly && !job.location?.toLowerCase().includes('remote')) return false;
     // Salary filter
@@ -177,6 +194,83 @@ export async function findMatchingJobs(userId, prefs) {
   return scored.sort((a, b) => b.score - a.score).slice(0, 10);
 }
 
+async function buildApplicationPayload(job, user, coverLetter) {
+  return {
+    jobId: job._id,
+    jobSeekerId: user._id,
+    resumeUrl: user.resumeLink || '',
+    coverLetter,
+  };
+}
+
+async function recordActivity(prefs, entry) {
+  prefs.activityLog.unshift({
+    ...entry,
+    timestamp: new Date(),
+  });
+}
+
+function pushRunLog(runLog, entry) {
+  runLog.push({
+    timestamp: new Date().toISOString(),
+    ...entry,
+  });
+}
+
+async function submitApplicationForJob(job, user, prefs, score, coverLetter, runLog) {
+  const existing = await JobApplication.findOne({ jobId: job._id, jobSeekerId: user._id });
+  if (existing) {
+    pushRunLog(runLog, {
+      action: 'skipped',
+      jobId: job._id.toString(),
+      jobTitle: job.title,
+      company: job.company,
+      score,
+      reason: 'Application already exists',
+    });
+    return { skipped: true, reason: 'Application already exists' };
+  }
+
+  const application = await JobApplication.create(await buildApplicationPayload(job, user, coverLetter));
+
+  try {
+    const freshJob = await Job.findById(job._id).populate('recruiter', 'companyName');
+    if (freshJob?.recruiter) {
+      const companyName = freshJob.recruiter.companyName || freshJob.company || 'your company';
+      await createNotification(
+        freshJob.recruiter._id,
+        'new_application',
+        'New Application Received',
+        `${user.name || 'A candidate'} applied for ${freshJob.title} at ${companyName}.`,
+        '/recruiter/applicants',
+        user.profilePicture || ''
+      );
+    }
+  } catch (notificationErr) {
+    console.warn('[AgentService] Notification failed:', notificationErr.message);
+  }
+
+  await recordActivity(prefs, {
+    action: 'applied',
+    jobId: job._id,
+    jobTitle: job.title,
+    company: job.company,
+    matchScore: score,
+    reason: buildReasonString(job, user, prefs, score),
+  });
+
+  pushRunLog(runLog, {
+    action: 'applied',
+    jobId: job._id.toString(),
+    jobTitle: job.title,
+    company: job.company,
+    score,
+    reason: buildReasonString(job, user, prefs, score),
+  });
+
+  return { application };
+}
+
 // ---------------------------------------------------------------------------
 // Engine: Decision
 // ---------------------------------------------------------------------------
@@ -188,6 +282,9 @@ export async function findMatchingJobs(userId, prefs) {
 export async function shouldApply(job, user, prefs, matchScore) {
   // Hard fail: score too low
   if (matchScore < 70) return false;
+
+  // In auto mode, strong matches should move forward even if the model is unavailable.
+  if (prefs.mode === 'auto' && matchScore >= 75) return true;
 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -223,8 +320,8 @@ Respond ONLY with a JSON object: { "apply": true/false, "reason": "brief one-sen
     return parsed.apply === true;
   } catch (err) {
     console.error('[AgentService] Decision engine error:', err.message);
-    // Default to apply if score is high enough
-    return matchScore >= 80;
+    // Default to apply if score is reasonably strong enough
+    return matchScore >= 70;
   }
 }
 
@@ -239,33 +336,86 @@ Respond ONLY with a JSON object: { "apply": true/false, "reason": "brief one-sen
  */
 export async function runAgentForUser(userId) {
   const prefs = await AgentPreferences.findOne({ userId });
-  if (!prefs || !prefs.isEnabled) return { drafted: 0, ignored: 0 };
+  if (!prefs || !prefs.isEnabled) {
+    return { drafted: 0, ignored: 0, applied: 0, matched: 0, runLog: [], reason: 'Agent is disabled' };
+  }
+  const autoApply = prefs.mode === 'auto';
+  const runLog = [];
 
-  // Daily draft limit check
+  // Daily action limit check
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const draftsToday = await AgentDraft.countDocuments({
     userId,
     createdAt: { $gte: today },
   });
-  if (draftsToday >= prefs.dailyLimit) {
-    return { drafted: 0, ignored: 0, reason: 'Daily limit reached' };
+  const applicationsToday = await JobApplication.countDocuments({
+    jobSeekerId: userId,
+    appliedAt: { $gte: today },
+  });
+  const actionsToday = draftsToday + applicationsToday;
+  if (actionsToday >= prefs.dailyLimit) {
+    pushRunLog(runLog, {
+      action: 'skipped',
+      jobTitle: 'Scan blocked',
+      company: '',
+      score: null,
+      reason: 'Daily limit reached',
+    });
+    return { drafted: 0, applied: 0, ignored: 0, matched: 0, runLog, reason: 'Daily limit reached' };
   }
 
   const user = await User.findById(userId);
-  if (!user) return { drafted: 0, ignored: 0, reason: 'User not found' };
+  if (!user) {
+    pushRunLog(runLog, {
+      action: 'skipped',
+      jobTitle: 'Scan blocked',
+      company: '',
+      score: null,
+      reason: 'User not found',
+    });
+    return { drafted: 0, applied: 0, ignored: 0, matched: 0, runLog, reason: 'User not found' };
+  }
 
   const matches = await findMatchingJobs(userId, prefs);
+  if (matches.length === 0) {
+    pushRunLog(runLog, {
+      action: 'info',
+      jobTitle: 'No matches',
+      company: '',
+      score: null,
+      reason: 'No eligible jobs matched the current filters and similarity threshold.',
+    });
+    return {
+      drafted: 0,
+      applied: 0,
+      ignored: 0,
+      matched: 0,
+      runLog,
+      reason: 'No eligible jobs matched the current filters and similarity threshold.',
+      mode: prefs.mode,
+    };
+  }
+
   let drafted = 0;
+  let applied = 0;
   let ignored = 0;
 
   for (const { job, score } of matches) {
-    if (draftsToday + drafted >= prefs.dailyLimit) break;
+    if (actionsToday + drafted + applied >= prefs.dailyLimit) break;
 
     const apply = await shouldApply(job, user, prefs, score);
     if (!apply) {
       ignored++;
-      prefs.activityLog.unshift({
+      pushRunLog(runLog, {
+        action: 'skipped',
+        jobId: job._id.toString(),
+        jobTitle: job.title,
+        company: job.company,
+        score,
+        reason: `Score ${score}% - below threshold or preference mismatch`,
+      });
+      await recordActivity(prefs, {
         action: 'ignored',
         jobId: job._id,
         jobTitle: job.title,
@@ -288,24 +438,38 @@ export async function runAgentForUser(userId) {
       coverLetter = `I am excited to apply for the ${job.title} role at ${job.company}. My skills in ${(user.skills || []).join(', ')} make me a strong candidate for this position.`;
     }
 
-    const reason = buildReasonString(job, user, prefs, score);
+    if (autoApply) {
+      const result = await submitApplicationForJob(job, user, prefs, score, coverLetter, runLog);
+      if (!result.skipped) {
+        applied++;
+      }
+      continue;
+    }
 
-    // Create the draft
     await AgentDraft.create({
       userId,
       jobId: job._id,
       coverLetter,
       matchScore: score,
-      matchReason: reason,
+      matchReason: buildReasonString(job, user, prefs, score),
     });
 
-    prefs.activityLog.unshift({
+    await recordActivity(prefs, {
       action: 'drafted',
       jobId: job._id,
       jobTitle: job.title,
       company: job.company,
       matchScore: score,
-      reason,
+      reason: buildReasonString(job, user, prefs, score),
+    });
+
+    pushRunLog(runLog, {
+      action: 'drafted',
+      jobId: job._id.toString(),
+      jobTitle: job.title,
+      company: job.company,
+      score,
+      reason: buildReasonString(job, user, prefs, score),
     });
 
     drafted++;
@@ -315,7 +479,24 @@ export async function runAgentForUser(userId) {
   prefs.activityLog = prefs.activityLog.slice(0, 50);
   await prefs.save();
 
-  return { drafted, ignored };
+  return { drafted, applied, ignored, matched: matches.length, mode: prefs.mode, runLog };
+}
+
+export async function runAgentSweep() {
+  const enabledPrefs = await AgentPreferences.find({ isEnabled: true }).select('userId');
+  const results = [];
+
+  for (const pref of enabledPrefs) {
+    try {
+      const result = await runAgentForUser(pref.userId);
+      results.push({ userId: pref.userId.toString(), ...result });
+    } catch (err) {
+      console.error('[AgentService] Sweep error:', err.message);
+      results.push({ userId: pref.userId.toString(), error: err.message });
+    }
+  }
+
+  return results;
 }
 
 // ---------------------------------------------------------------------------

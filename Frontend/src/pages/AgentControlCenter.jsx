@@ -62,6 +62,20 @@ function PreferencesForm({ prefs, onSave, saving }) {
       <h3 className="font-semibold text-[var(--color-text-primary)] mb-4 border-b border-[var(--color-border)] pb-2">Agent Preferences</h3>
       <div className="space-y-4">
         <div>
+          <label className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider">Agent Mode</label>
+          <select
+            value={local.mode || 'draft'}
+            onChange={(e) => setLocal({ ...local, mode: e.target.value })}
+            className="w-full mt-1.5 p-2.5 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-lg text-sm focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all"
+          >
+            <option value="draft">Draft Mode</option>
+            <option value="auto">Auto Apply Mode</option>
+          </select>
+          <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1.5">
+            Draft mode creates approvals. Auto mode submits applications right away.
+          </p>
+        </div>
+        <div>
           <label className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider">Target Job Titles (comma-separated)</label>
           <input
             type="text"
@@ -193,6 +207,46 @@ function ActivityLogEntry({ entry }) {
   );
 }
 
+function RunLogEntry({ entry }) {
+  const color =
+    entry.action === 'applied'
+      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+      : entry.action === 'drafted'
+        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+        : entry.action === 'skipped'
+          ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+          : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]';
+
+  return (
+    <div className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded ${color}`}>
+              {entry.action || 'info'}
+            </span>
+            <p className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+              {entry.jobTitle || 'Unknown Job'}
+              {entry.company ? ` @ ${entry.company}` : ''}
+            </p>
+          </div>
+          {typeof entry.score === 'number' && (
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Score: {entry.score}%</p>
+          )}
+          {entry.reason && (
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">{entry.reason}</p>
+          )}
+        </div>
+        {entry.timestamp && (
+          <span className="text-[10px] text-[var(--color-text-tertiary)] font-medium whitespace-nowrap">
+            {new Date(entry.timestamp).toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
@@ -209,6 +263,8 @@ export default function AgentControlCenter() {
   const [toggling, setToggling] = useState(false);
   const [running, setRunning] = useState(false);
   const [processingDraft, setProcessingDraft] = useState(null); // draftId
+  const [lastRunLog, setLastRunLog] = useState([]);
+  const [lastRunSummary, setLastRunSummary] = useState('');
   const [toast, setToast] = useState('');
   const [toastType, setToastType] = useState('success');
 
@@ -249,7 +305,11 @@ export default function AgentControlCenter() {
     setSavingPrefs(true);
     try {
       await updateAgentPreferences(newPrefs);
-      setStatus((prev) => ({ ...prev, preferences: newPrefs }));
+      setStatus((prev) => ({
+        ...prev,
+        mode: newPrefs.mode ?? prev?.mode,
+        preferences: { ...(prev?.preferences || {}), ...newPrefs },
+      }));
       showToast('Preferences saved!');
     } catch {
       showToast('Failed to save preferences', 'error');
@@ -262,7 +322,11 @@ export default function AgentControlCenter() {
     setRunning(true);
     try {
       const result = await triggerAgentRun();
-      showToast(`Agent finished: ${result.drafted} new draft(s), ${result.ignored} ignored.`);
+      const appliedText = result.applied ? `${result.applied} applied, ` : '';
+      const summary = `Agent finished: ${appliedText}${result.drafted || 0} draft(s), ${result.ignored || 0} ignored.`;
+      setLastRunLog(Array.isArray(result.runLog) ? result.runLog : []);
+      setLastRunSummary(result.reason ? `${summary} ${result.reason}` : summary);
+      showToast(result.reason ? `${summary} ${result.reason}` : summary);
       await loadStatus();
     } catch {
       showToast('Agent run failed', 'error');
@@ -332,7 +396,7 @@ export default function AgentControlCenter() {
                 </h1>
                 <p className="text-[var(--color-text-secondary)] text-sm mt-1">
                   {status?.isEnabled
-                    ? '🟢 Agent is active and scanning for matches in Draft Mode'
+                    ? `🟢 Agent is active in ${status?.mode === 'auto' ? 'Auto Apply' : 'Draft'} Mode`
                     : '⚪ Agent is paused. Activate it to start finding jobs.'}
                 </p>
               </div>
@@ -343,7 +407,7 @@ export default function AgentControlCenter() {
                   className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] text-sm font-semibold rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors disabled:opacity-40"
                 >
                   {running ? <FaSpinner className="animate-spin" /> : <FaBolt />}
-                  Scan Now
+                  {status?.mode === 'auto' ? 'Run Sweep' : 'Scan Now'}
                 </button>
                 <button
                   onClick={handleToggle}
@@ -376,6 +440,37 @@ export default function AgentControlCenter() {
 
               {/* Right: Drafts + Log */}
               <div className="lg:col-span-2 space-y-5">
+
+                {/* Last Run Log */}
+                <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+                  <div className="flex justify-between items-center mb-4 border-b border-[var(--color-border)] pb-3">
+                    <h3 className="font-semibold text-[var(--color-text-primary)]">Last Run Log</h3>
+                    {lastRunLog?.length > 0 && (
+                      <span className="bg-[var(--color-accent-bg)] text-[var(--color-accent)] text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold">
+                        {lastRunLog.length} Entries
+                      </span>
+                    )}
+                  </div>
+
+                  {lastRunSummary && (
+                    <p className="text-xs text-[var(--color-text-secondary)] mb-4">{lastRunSummary}</p>
+                  )}
+
+                  {lastRunLog?.length > 0 ? (
+                    <div className="space-y-3">
+                      {lastRunLog.map((entry, index) => (
+                        <RunLogEntry key={`${entry.timestamp || index}-${index}`} entry={entry} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <p className="text-sm text-[var(--color-text-secondary)]">No run log yet</p>
+                      <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+                        Click "Scan Now" or "Run Sweep" to see per-job decisions here
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Awaiting Approval */}
                 <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
@@ -410,7 +505,11 @@ export default function AgentControlCenter() {
                       <FaRobot className="text-4xl text-[var(--color-text-tertiary)] mb-3" />
                       <p className="text-sm font-medium text-[var(--color-text-secondary)]">No drafts waiting for review</p>
                       <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-                        {status?.isEnabled ? 'Click "Scan Now" to find matches' : 'Activate the agent to start receiving drafts'}
+                        {status?.isEnabled
+                          ? status?.mode === 'auto'
+                            ? 'The agent will apply matching jobs automatically as it scans'
+                            : 'Click "Scan Now" to find matches'
+                          : 'Activate the agent to start receiving drafts'}
                       </p>
                     </div>
                   )}
