@@ -16,6 +16,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [role, setRole] = useState('jobseeker');
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -54,47 +55,52 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
   const handleSubmit = async e => {
     e.preventDefault();
     setPasswordError('');
+    setSubmitting(true);
 
-    let data;
-    if (type === 'register') {
-      if (form.password !== form.confirmPassword) {
-        setPasswordError('Passwords do not match');
-        return;
-      }
-      if (role === 'jobseeker') {
-        data = {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
-          experience: form.experience,
-          resumeLink: form.resumeLink,
-          role: 'jobseeker',
-        };
+    try {
+      let data;
+      if (type === 'register') {
+        if (form.password !== form.confirmPassword) {
+          setPasswordError('Passwords do not match');
+          return;
+        }
+        if (role === 'jobseeker') {
+          data = {
+            name: form.name,
+            email: form.email,
+            password: form.password,
+            skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+            experience: form.experience,
+            resumeLink: form.resumeLink,
+            role: 'jobseeker',
+          };
+        } else {
+          data = {
+            recruiterName: form.recruiterName,
+            email: form.email,
+            password: form.password,
+            confirmPassword: form.confirmPassword,
+            companyName: form.companyName,
+            companyAddress: form.companyAddress,
+            companyWebsite: form.companyWebsite,
+            role: 'recruiter',
+          };
+        }
+
+        await dispatch(register(data)).unwrap();
+        // Upon successful registration, authSlice updates user state and Register.jsx will handle navigation
       } else {
         data = {
-          recruiterName: form.recruiterName,
           email: form.email,
           password: form.password,
-          confirmPassword: form.confirmPassword,
-          companyName: form.companyName,
-          companyAddress: form.companyAddress,
-          companyWebsite: form.companyWebsite,
-          role: 'recruiter',
+          rememberMe: form.rememberMe,
         };
+
+        await dispatch(login(data)).unwrap();
+        // Same logic, Login.jsx handles navigation on successful user state update
       }
-
-      await dispatch(register(data));
-      // Upon successful registration, authSlice updates user state and Register.jsx will handle navigation
-    } else {
-      data = {
-        email: form.email,
-        password: form.password,
-        rememberMe: form.rememberMe,
-      };
-
-      await dispatch(login(data));
-      // Same logic, Login.jsx handles navigation on successful user state update
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -155,7 +161,7 @@ export default function AuthForm({ type = 'login', onSubmit, loading, error, onE
         )}
       </div>
 
-      <SubmitButton loading={loading} type={type} />
+      <SubmitButton loading={submitting} type={type} />
     </form>
   );
 }
